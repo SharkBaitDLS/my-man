@@ -1,0 +1,20 @@
+{
+   // Use IntelliSense to learn about possible attributes.
+   // Hover to view descriptions of existing attributes.
+   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+   "version": "0.2.0",
+   "configurations": [
+      {
+         "name": "Rust",
+         "type": "lldb",
+         "request": "launch",
+         "program": "${workspaceRoot}/target/debug/my_man",
+         "args": [],
+         "env": {
+            "DISCORD_TOKEN": "MTk3MTkxODA2NzYzNTMyMjg4.DZNgjw.lKahX6d8_Q7cxpPjNUEJZs9z8TU",
+            "AUDIO_FILE_DIR": "/Users/Isaac/Dropbox/DiscordBoard/"
+         },
+         "cwd": "${workspaceRoot}",
+     }
+   ]
+}
