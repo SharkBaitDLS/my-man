@@ -12,5 +12,4 @@ log = "*"
 
 [dependencies.serenity]
 version = "0.7.1"
-path = "../test/serenity"
 features = ["cache", "framework", "standard_framework", "voice", "http", "rustls_backend"]

@@ -1,6 +1,6 @@
 extern crate serenity;
 
-use log::{debug, info, error};
+use log::{debug, info, error, warn};
 use serenity::{
    builder::CreateMessage,
    client::{Client, Context, EventHandler, bridge::voice::ClientVoiceManager},
@@ -39,16 +39,9 @@ fn help<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
 ?list             - Returns a list of available sound files.
 ?soundFileName    - Plays the specified sound from the list.
 ?yt youtubeLink   - Plays the youtube link specified.
-?random           - Plays a random sound from the list.
-?volume 0-100     - Sets the playback volume.
 ?stop             - Stops the sound that is currently playing.
 ?summon           - Summon the bot to your channel.
 ```")
-}
-
-fn volume<'a, 'b>(percentage: i8, msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
-   // TODO
-   return msg.content(format!("*Volume set to {}%*", percentage))
 }
 
 fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
@@ -57,6 +50,26 @@ fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
       .fold(String::from("Type any of the following into the chat to play the sound:\n```\n"),
          |accum, path| accum + "?" + path.unwrap().path().file_stem().unwrap().to_str().unwrap() + "\n");
    return msg.content(file_names + "```");
+}
+
+fn stop(ctx: &Context, msg: &Message) {
+   let guild = match msg.guild(&ctx.cache) {
+      Some(guild) => guild,
+      None => {
+         log_on_error(msg.author.direct_message(ctx, |m| m.content(
+            "I don't know what guild to join when you DM me, please write in a chat channel.")));
+         return;
+      }
+   };
+   let guild_id = guild.read().id;
+
+   let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in data map.");
+   let mut manager = manager_lock.lock();
+
+   match manager.get_mut(guild_id) {
+      Some(handler) => handler.stop(),
+      None => warn!("Could not load audio handler to stop.") 
+   };
 }
 
 fn join_and_play(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, source: Box<dyn voice::AudioSource>) {
@@ -93,10 +106,39 @@ fn join_message_and_play(ctx: &Context, msg: &Message, source: Box<dyn voice::Au
    join_and_play(ctx, guild_id, connect_to, source)
 }
 
-fn get_file_source<F>(name: &String, not_found_handler: F) -> Option<Box<dyn voice::AudioSource>> where F: Fn(&String) {
+fn join_message(ctx: &Context, msg: &Message) {
+   let guild = match msg.guild(&ctx.cache) {
+      Some(guild) => guild,
+      None => {
+         log_on_error(msg.author.direct_message(ctx, |m| m.content(
+            "I don't know what guild to join when you DM me, please write in a chat channel.")));
+         return;
+      }
+   };
 
+   let guild_id = guild.read().id;
+   let channel_id = guild.read().voice_states.get(&msg.author.id).and_then(|voice_state| voice_state.channel_id);
+
+   let connect_to = match channel_id {
+      Some(channel) => channel,
+      None => {
+         log_on_error(msg.author.direct_message(ctx, |m| m.content("You are not in a voice channel!")));
+         return;
+      }
+   };
+
+   let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in data map.");
+   let mut manager = manager_lock.lock();
+
+   match manager.join(guild_id, connect_to) {
+      Some(_) => (),
+      None => error!("Could not load audio handler for playback.") 
+   };
+}
+
+fn get_file_source<F>(name: &String, not_found_handler: F) -> Option<Box<dyn voice::AudioSource>> where F: Fn(&String) {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
-   let audio_file_path_str = file_dir + name + ".mp3";
+   let audio_file_path_str = file_dir + &name.to_lowercase() + ".mp3";
    let path = Path::new(&(audio_file_path_str));
 
    match File::open(&path) {
@@ -174,20 +216,9 @@ impl EventHandler for EventListener {
                      Some(source) => join_message_and_play(&ctx, &msg, source),
                      None => error!("Could not play youtube video.")
                   }
-               }
-               "?random" => (), // TODO
-               content if content.starts_with("?volume ") => {
-                  match content.split_at(8).1.parse::<i8>() {
-                     Ok(vol) if vol >= 0 && vol <= 100 => {
-                        log_on_error(msg.author.direct_message(&ctx, |m| volume(vol, m)))
-                     }
-                     Err(..) | Ok(..) => {
-                        log_on_error(msg.author.direct_message(&ctx, |m| m.content("Please use a value from 0-100")))
-                     }
-                  };
                },
-               "?stop" => (), // TODO
-               "?summon" => (), // TODO
+               "?stop" => stop(&ctx, &msg),
+               "?summon" => join_message(&ctx, &msg),
                "?help" => log_on_error(msg.author.direct_message(&ctx, help)),
                _ => match get_file_source(&msg.content.split_at(1).1.to_string(), |n| dm_not_found(&ctx, &msg, n)) {
                   Some(source) => join_message_and_play(&ctx, &msg, source),
