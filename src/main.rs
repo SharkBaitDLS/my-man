@@ -182,17 +182,20 @@ impl EventHandler for EventListener {
       info!("{} is connected!", ready.user.name);
    }
 
-   fn voice_state_update(&self, ctx: Context, guild_id: Option<GuildId>, _old: Option<VoiceState>, new: VoiceState) {
-      match new.channel_id {
-         Some(channel_id) => match new.user_id.to_user(&ctx) {
-            Ok(user) => match user {
-               User { bot: true, .. } => debug!("A bot joined a channel: {}", user.name),
-               _ => match get_file_source(&user.name, |file| info!("No user sound file found for {}", file)) {
-                  Some(source) => join_and_play(&ctx, guild_id.unwrap(), channel_id, source),
-                  None => error!("Could not play sound for voice state update.")
-               }
+   fn voice_state_update(&self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState) {
+      match old.and_then(|old_state| old_state.channel_id) {
+         Some(old_channel_id) => match new.channel_id {
+            Some(channel_id) if channel_id != old_channel_id => match new.user_id.to_user(&ctx) {
+               Ok(user) => match user {
+                  User { bot: true, .. } => debug!("A bot joined a channel: {}", user.name),
+                  _ => match get_file_source(&user.name, |file| info!("No user sound file found for {}", file)) {
+                     Some(source) => join_and_play(&ctx, guild_id.unwrap(), channel_id, source),
+                     None => error!("Could not play sound for voice state update.")
+                  }
+               },
+               Err(why) => error!("Could not get user name: {}", why.description())
             },
-            Err(why) => error!("Could not get user name: {}", why.description())
+            _ => ()
          },
          None => ()
       }
