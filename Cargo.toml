@@ -1,6 +1,6 @@
 [package]
 name = "my_man"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Isaac M. Good <imgood@imgoodproductions.org>"]
 edition = "2018"
 
@@ -11,5 +11,5 @@ env_logger = "*"
 log = "*"
 
 [dependencies.serenity]
-version = "0.7.1"
+version = "0.8"
 features = ["cache", "framework", "standard_framework", "voice", "http", "rustls_backend"]

@@ -1,5 +1,6 @@
 extern crate serenity;
 
+use serenity::voice::LockedAudio;
 use log::{debug, info, error, warn};
 use serenity::{
    builder::CreateMessage,
@@ -19,7 +20,7 @@ use serenity::{
    Result as SerenityResult,
    voice
 };
-use std::{env, error::Error, fs::File, fs::read_dir, io::ErrorKind, path::Path, sync::Arc}; 
+use std::{env, fs::File, fs::read_dir, io::ErrorKind, path::Path, sync::Arc}; 
 
 struct VoiceManager;
 
@@ -72,17 +73,29 @@ fn stop(ctx: &Context, msg: &Message) {
    };
 }
 
-fn join_and_play(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, source: Box<dyn voice::AudioSource>) {
+fn join_and_play(
+   ctx: &Context,
+   guild_id: GuildId,
+   channel_id: ChannelId,
+   source: Box<dyn voice::AudioSource>,
+   volume: f32
+) {
    let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in data map.");
    let mut manager = manager_lock.lock();
 
    match manager.join(guild_id, channel_id) {
-      Some(handler) => handler.play(source),
+      Some(handler) => {
+         let safe_audio: LockedAudio = handler.play_only(source);
+         {
+            let mut audio = safe_audio.lock();
+            audio.volume(volume);
+         }
+      },
       None => error!("Could not load audio handler for playback.") 
    };
 }
 
-fn join_message_and_play(ctx: &Context, msg: &Message, source: Box<dyn voice::AudioSource>) {
+fn join_message_and_play(ctx: &Context, msg: &Message, source: Box<dyn voice::AudioSource>, volume: f32) {
    let guild = match msg.guild(&ctx.cache) {
       Some(guild) => guild,
       None => {
@@ -103,7 +116,7 @@ fn join_message_and_play(ctx: &Context, msg: &Message, source: Box<dyn voice::Au
       }
    };
 
-   join_and_play(ctx, guild_id, connect_to, source)
+   join_and_play(ctx, guild_id, connect_to, source, volume);
 }
 
 fn join_message(ctx: &Context, msg: &Message) {
@@ -145,7 +158,7 @@ fn get_file_source<F>(name: &String, not_found_handler: F) -> Option<Box<dyn voi
       Err(why) => {
          match why.kind() {
             ErrorKind::NotFound => not_found_handler(name),
-            _ => error!("couldn't open {}: {}", audio_file_path_str, why.description())
+            _ => error!("couldn't open {}: {}", audio_file_path_str, why.to_string())
          };
          return None;
       },
@@ -192,11 +205,11 @@ impl EventHandler for EventListener {
                   Ok(user) => match user {
                      User { bot: true, .. } => debug!("A bot joined a channel: {}", user.name),
                      _ => match get_file_source(&user.name, |file| info!("No user sound file found for {}", file)) {
-                        Some(source) => join_and_play(&ctx, guild_id.unwrap(), channel_id, source),
+                        Some(source) => join_and_play(&ctx, guild_id.unwrap(), channel_id, source, 1.0),
                         None => error!("Could not play sound for voice state update.")
                      }
                   },
-                  Err(why) => error!("Could not get user name: {}", why.description())
+                  Err(why) => error!("Could not get user name: {}", why.to_string())
                },
          _ => ()
       }
@@ -217,7 +230,7 @@ impl EventHandler for EventListener {
                      return;
                   };
                   match get_youtube_source(url) {
-                     Some(source) => join_message_and_play(&ctx, &msg, source),
+                     Some(source) => join_message_and_play(&ctx, &msg, source, 0.2),
                      None => error!("Could not play youtube video.")
                   }
                },
@@ -225,7 +238,7 @@ impl EventHandler for EventListener {
                "?summon" => join_message(&ctx, &msg),
                "?help" => log_on_error(msg.author.direct_message(&ctx, help)),
                _ => match get_file_source(&msg.content.split_at(1).1.to_string(), |n| dm_not_found(&ctx, &msg, n)) {
-                  Some(source) => join_message_and_play(&ctx, &msg, source),
+                  Some(source) => join_message_and_play(&ctx, &msg, source, 1.0),
                   None => error!("Could not play sound for chat request.")
                }
             };
