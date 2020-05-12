@@ -20,7 +20,7 @@ use serenity::{
    Result as SerenityResult,
    voice
 };
-use std::{env, fs::File, fs::read_dir, io::ErrorKind, path::Path, sync::Arc}; 
+use std::{collections::BinaryHeap, env, fs::File, fs::read_dir, io::ErrorKind, path::Path, sync::Arc};
 
 struct VoiceManager;
 
@@ -47,10 +47,13 @@ fn help<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
 
 fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
-   let file_names = read_dir(file_dir).unwrap()
-      .fold(String::from("Type any of the following into the chat to play the sound:\n```\n"),
-         |accum, path| accum + "?" + path.unwrap().path().file_stem().unwrap().to_str().unwrap() + "\n");
-   return msg.content(file_names + "```");
+   let file_names: BinaryHeap<String> = read_dir(file_dir).unwrap()
+      .map(|path| String::from(path.unwrap().path().file_stem().unwrap().to_str().unwrap()))
+      .collect();
+   let list_message = file_names.into_sorted_vec().into_iter().fold(
+      String::from("Type any of the following into the chat to play the sound:\n```\n"),
+      |accum, path| accum + "?" + &path + "\n");
+   return msg.content(list_message + "```");
 }
 
 fn stop(ctx: &Context, msg: &Message) {
@@ -85,7 +88,7 @@ fn join_and_play(
 
    match manager.join(guild_id, channel_id) {
       Some(handler) => {
-         let safe_audio: LockedAudio = handler.play_only(source);
+         let safe_audio: LockedAudio = handler.play_returning(source);
          {
             let mut audio = safe_audio.lock();
             audio.volume(volume);
