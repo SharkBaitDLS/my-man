@@ -9,6 +9,7 @@ use serenity::{
    model::{
       channel::Message,
       channel::MessageType,
+      gateway::Activity,
       gateway::Ready,
       id::ChannelId,
       id::GuildId,
@@ -194,8 +195,9 @@ fn dm_not_found(ctx: &Context, msg: &Message, name: &String) {
 struct EventListener;
 
 impl EventHandler for EventListener {
-   fn ready(&self, _ctx: Context, ready: Ready) {
+   fn ready(&self, ctx: Context, ready: Ready) {
       info!("{} is connected!", ready.user.name);
+      ctx.set_activity(Activity::playing("Type ?help in chat"));
    }
 
    fn voice_state_update(&self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState) {
