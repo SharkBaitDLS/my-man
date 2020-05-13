@@ -191,7 +191,13 @@ impl EventHandler for EventListener {
       match new.channel_id {
          Some(channel_id) if old
             .and_then(|old_state| old_state.channel_id)
-            .and_then(|old_channel_id| Option::from(old_channel_id != channel_id))
+            .and_then(|old_channel_id| {
+               let channel_changed = old_channel_id != channel_id;
+               let changed_to_not_afk = channel_changed && guild_id.unwrap().to_guild_cached(&ctx.cache)
+                  .and_then(|guild| guild.read().afk_channel_id)
+                  .map_or(false, |afk_id| afk_id != channel_id);
+               Option::from(changed_to_not_afk)
+            })
             .unwrap_or_else(|| true) =>
                match new.user_id.to_user(&ctx) {
                   Ok(user) => match user {
@@ -203,7 +209,21 @@ impl EventHandler for EventListener {
                   },
                   Err(why) => error!("Could not get user name: {}", why.to_string())
                },
-         _ => ()
+         Some(_) => (),
+         None => {
+            match guild_id.and_then(|id| id.to_guild_cached(&ctx.cache)).map(|guild| guild.read().voice_states.len()) {
+               Some(length) => {
+                  // the bot is the only one left in voice
+                  if length == 1 {
+                     let manager_lock = ctx.data.read().get::<VoiceManager>().cloned()
+                        .expect("Expected VoiceManager in data map.");
+                     let mut manager = manager_lock.lock();
+                     manager.leave(guild_id.unwrap());
+                  }
+               },
+               None => ()
+            }
+         }
       }
    }
 
