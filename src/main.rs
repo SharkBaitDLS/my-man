@@ -236,7 +236,7 @@ impl EventHandler for EventListener {
                         .and_then(|guild| guild.read().afk_channel_id)
                         .map_or(true, |afk_id| afk_id != channel_id)
                })
-               .unwrap_or(false) =>
+               .unwrap_or(true) =>
          {
             match new.user_id.to_user(&ctx) {
                Ok(user) => match user {
