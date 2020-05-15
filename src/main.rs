@@ -227,14 +227,16 @@ impl EventHandler for EventListener {
          Some(channel_id)
             if old
                .and_then(|old_state| old_state.channel_id)
-               .and_then(|old_channel_id| Option::from(old_channel_id != channel_id))
-               .unwrap_or_else(|| {
-                  guild_id
-                     .unwrap()
-                     .to_guild_cached(&ctx.cache)
-                     .and_then(|guild| guild.read().afk_channel_id)
-                     .map_or(true, |afk_id| afk_id != channel_id)
-               }) =>
+               .map(|old_channel_id| old_channel_id != channel_id)
+               .map(|channel_changed| {
+                  channel_changed
+                     && guild_id
+                        .unwrap()
+                        .to_guild_cached(&ctx.cache)
+                        .and_then(|guild| guild.read().afk_channel_id)
+                        .map_or(true, |afk_id| afk_id != channel_id)
+               })
+               .unwrap_or(false) =>
          {
             match new.user_id.to_user(&ctx) {
                Ok(user) => match user {
