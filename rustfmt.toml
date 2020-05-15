@@ -1,0 +1,6 @@
+max_width = 120
+tab_spaces = 3
+newline_style = "Unix"
+edition = "2018"
+use_field_init_shorthand = true
+fn_args_layout = "Compressed"
