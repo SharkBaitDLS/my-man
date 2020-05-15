@@ -618,7 +618,7 @@ dependencies = [
 
 [[package]]
 name = "my_man"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
