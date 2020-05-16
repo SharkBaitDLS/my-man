@@ -33,7 +33,7 @@ fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id
          User { bot: true, .. } => debug!("A bot joined a channel: {}", user.name),
          _ => match audio_source::file(&user.name, |file| info!("No user sound file found for {}", file)) {
             Some(source) => playback::join_and_play(ctx, guild_id, channel_id, source, 1.0),
-            None => error!("Could not play sound for voice state update"),
+            None => (),
          },
       },
       Err(why) => error!("Could not get user name: {}", why.to_string()),
@@ -79,7 +79,7 @@ fn play_file(ctx: Context, msg: Message) {
    let name = &msg.content.split_at(1).1.to_string();
    match audio_source::file(name, |name| chat::dm_not_found(&ctx, &msg, name)) {
       Some(source) => playback::join_message_and_play(ctx, msg, source, 1.0),
-      None => error!("Could not play sound for \"{}\"", name),
+      None => (),
    }
 }
 

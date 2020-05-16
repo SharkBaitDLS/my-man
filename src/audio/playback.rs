@@ -1,6 +1,6 @@
 use crate::util::log_on_error;
 use log::{error, warn};
-use serenity::voice::LockedAudio;
+use serenity::voice::{Handler, LockedAudio};
 use serenity::{
    client::{bridge::voice::ClientVoiceManager, Context},
    model::{channel::Message, id::ChannelId, id::GuildId},
@@ -79,6 +79,14 @@ macro_rules! get_connection_data_or_return {
    };
 }
 
+fn play_source(handler: &mut Handler, source: Box<dyn voice::AudioSource>, volume: f32) {
+   let safe_audio: LockedAudio = handler.play_returning(source);
+   {
+      let mut audio = safe_audio.lock();
+      audio.volume(volume);
+   }
+}
+
 pub fn join_and_play(
    ctx: Context, guild_id: GuildId, channel_id: ChannelId, source: Box<dyn voice::AudioSource>, volume: f32,
 ) {
@@ -94,13 +102,15 @@ pub fn join_and_play(
             // mean the switch has happened
             sleep(Duration::from_millis(500));
          }
-         let safe_audio: LockedAudio = handler.play_returning(source);
-         {
-            let mut audio = safe_audio.lock();
-            audio.volume(volume);
-         }
+         play_source(handler, source, volume);
       }
-      None => error!("Could not load audio handler for playback"),
+      None => match manager.join(guild_id, channel_id) {
+         Some(handler) => {
+            sleep(Duration::from_millis(500));
+            play_source(handler, source, volume);
+         }
+         None => error!("Could not create audio handler for initial join"),
+      },
    };
 }
 
