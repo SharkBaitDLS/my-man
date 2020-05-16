@@ -100,13 +100,13 @@ pub fn join_and_play(
             // the underlying HTTP request to Discord's API to switch channels
             // doesn't immediately take effect, so the call above returning doesn't actually
             // mean the switch has happened
-            sleep(Duration::from_millis(1000));
+            sleep(Duration::from_secs(1));
          }
          play_source(handler, source, volume);
       }
       None => match manager.join(guild_id, channel_id) {
          Some(handler) => {
-            sleep(Duration::from_millis(1000));
+            sleep(Duration::from_secs(1));
             play_source(handler, source, volume);
          }
          None => error!("Could not create audio handler for initial join"),
