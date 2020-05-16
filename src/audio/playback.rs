@@ -17,12 +17,11 @@ impl TypeMapKey for VoiceManager {
 }
 
 fn get_manager_lock(ctx: Context) -> Arc<Mutex<ClientVoiceManager>> {
-   return ctx
-      .data
+   ctx.data
       .read()
       .get::<VoiceManager>()
       .cloned()
-      .expect("Expected VoiceManager in data map");
+      .expect("Expected VoiceManager in data map")
 }
 
 struct ConnectionData {
@@ -47,7 +46,7 @@ fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> Option<Conn
          .collect(),
    };
 
-   return possible_guilds.into_iter().find_map(|guild| {
+   possible_guilds.into_iter().find_map(|guild| {
       match guild
          .read()
          .voice_states
@@ -60,7 +59,7 @@ fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> Option<Conn
          }),
          None => None,
       }
-   });
+   })
 }
 
 macro_rules! get_connection_data_or_return {
@@ -111,7 +110,7 @@ pub fn join_and_play(
          }
          None => error!("Could not create audio handler for initial join"),
       },
-   };
+   }
 }
 
 pub fn stop(ctx: Context, msg: Message) {
@@ -122,12 +121,12 @@ pub fn stop(ctx: Context, msg: Message) {
    match manager.get_mut(connect_to.guild) {
       Some(handler) => handler.stop(),
       None => warn!("Could not load audio handler to stop"),
-   };
+   }
 }
 
 pub fn join_message_and_play(ctx: Context, msg: Message, source: Box<dyn voice::AudioSource>, volume: f32) {
    let connect_to = get_connection_data_or_return!(ctx, msg);
-   join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume);
+   join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume)
 }
 
 pub fn join_message(ctx: Context, msg: Message) {
@@ -138,5 +137,5 @@ pub fn join_message(ctx: Context, msg: Message) {
    match manager.join(connect_to.guild, connect_to.channel) {
       Some(_) => (),
       None => error!("Could not load audio handler for playback"),
-   };
+   }
 }

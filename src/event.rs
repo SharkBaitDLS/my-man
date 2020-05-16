@@ -13,10 +13,10 @@ use serenity::{
 pub struct Listener;
 
 fn is_not_afk(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bool {
-   return guild_id
+   guild_id
       .to_guild_cached(&ctx.cache)
       .and_then(|guild| guild.read().afk_channel_id)
-      .map_or(true, |afk_id| afk_id != channel_id);
+      .map_or(true, |afk_id| afk_id != channel_id)
 }
 
 fn channel_changed(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, old_id: Option<ChannelId>) -> bool {
@@ -24,7 +24,7 @@ fn channel_changed(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, old_
       .map(|old_channel_id| old_channel_id != channel_id)
       .unwrap_or(true);
 
-   return moved_or_joined && is_not_afk(ctx, guild_id, channel_id);
+   moved_or_joined && is_not_afk(ctx, guild_id, channel_id)
 }
 
 fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id: UserId) {

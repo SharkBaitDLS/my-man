@@ -4,7 +4,7 @@ use serenity::{builder::CreateMessage, client::Context, model::channel::Message}
 use std::{collections::BinaryHeap, convert::identity, env, fs::read_dir};
 
 pub fn help<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
-   return msg.content(
+   msg.content(
       "You can type any of the following commands:
 ```
 ?list             - Returns a list of available sound files.
@@ -13,7 +13,7 @@ pub fn help<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
 ?stop             - Stops the sound that is currently playing.
 ?summon           - Summon the bot to your channel.
 ```",
-   );
+   )
 }
 
 pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
@@ -27,7 +27,7 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
                      let path = entry.path();
                      path
                         .file_stem()
-                        .filter(|_| path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some(".mp3"))
+                        .filter(|_| path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("mp3"))
                         .and_then(|stem| stem.to_str())
                         .map(|name| String::from(name))
                   })
@@ -42,7 +42,7 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
          BinaryHeap::new()
       });
 
-   return if file_names.is_empty() {
+   if file_names.is_empty() {
       msg.content("No MP3 files found for playback in the configured directory!")
    } else {
       let list_message = file_names.into_sorted_vec().into_iter().fold(
@@ -50,12 +50,12 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
          |accum, path| accum + "?" + &path + "\n",
       );
       msg.content(list_message + "```")
-   };
+   }
 }
 
 pub fn dm_not_found(ctx: &Context, msg: &Message, name: &String) {
    log_on_error(
       msg.author
          .direct_message(ctx, |m| m.content(format!("Cannot find audio file for {}", name))),
-   );
+   )
 }
