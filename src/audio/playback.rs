@@ -8,7 +8,7 @@ use serenity::{
    prelude::*,
    voice,
 };
-use std::sync::Arc;
+use std::{sync::Arc, thread::sleep, time::Duration};
 
 pub struct VoiceManager;
 
@@ -85,8 +85,15 @@ pub fn join_and_play(
    let manager_lock = get_manager_lock(ctx);
    let mut manager = manager_lock.lock();
 
-   match manager.join(guild_id, channel_id) {
+   match manager.get_mut(guild_id) {
       Some(handler) => {
+         if handler.channel_id != Some(channel_id) {
+            handler.join(channel_id);
+            // the underlying HTTP request to Discord's API to switch channels
+            // doesn't immediately take effect, so the call above returning doesn't actually
+            // mean the switch has happened
+            sleep(Duration::from_millis(500));
+         }
          let safe_audio: LockedAudio = handler.play_returning(source);
          {
             let mut audio = safe_audio.lock();
