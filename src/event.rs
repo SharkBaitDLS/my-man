@@ -40,7 +40,7 @@ fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id
    }
 }
 
-fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
+fn leave_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
    match guild_id
       .and_then(|id| id.to_guild_cached(&ctx.cache))
       .map(|guild| guild.read().voice_states.len())
@@ -95,7 +95,7 @@ impl EventHandler for Listener {
             play_entrance(ctx, guild_id.unwrap(), channel_id, new.user_id)
          }
          Some(_) => (),
-         None => move_if_last_user(ctx, guild_id),
+         None => leave_if_last_user(ctx, guild_id),
       }
    }
 
