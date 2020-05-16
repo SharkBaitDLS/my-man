@@ -12,18 +12,19 @@ use serenity::{
 
 pub struct Listener;
 
-fn channel_changed(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, old: Option<VoiceState>) -> bool {
-   return old
-      .and_then(|old_state| old_state.channel_id)
+fn is_not_afk(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bool {
+   return guild_id
+      .to_guild_cached(&ctx.cache)
+      .and_then(|guild| guild.read().afk_channel_id)
+      .map_or(true, |afk_id| afk_id != channel_id);
+}
+
+fn channel_changed(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, old_id: Option<ChannelId>) -> bool {
+   let moved_or_joined = old_id
       .map(|old_channel_id| old_channel_id != channel_id)
-      .map(|channel_changed| {
-         channel_changed
-            && guild_id
-               .to_guild_cached(&ctx.cache)
-               .and_then(|guild| guild.read().afk_channel_id)
-               .map_or(true, |afk_id| afk_id != channel_id)
-      })
       .unwrap_or(true);
+
+   return moved_or_joined && is_not_afk(ctx, guild_id, channel_id);
 }
 
 fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id: UserId) {
@@ -90,7 +91,7 @@ impl EventHandler for Listener {
 
    fn voice_state_update(&self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState) {
       match new.channel_id {
-         Some(channel_id) if channel_changed(&ctx, guild_id.unwrap(), channel_id, old) => {
+         Some(channel_id) if channel_changed(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) => {
             play_entrance(ctx, guild_id.unwrap(), channel_id, new.user_id)
          }
          Some(_) => (),
