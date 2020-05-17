@@ -9,22 +9,23 @@ use serenity::{
       id::UserId, user::User, voice::VoiceState,
    },
 };
+use std::collections::hash_map::Values;
 
 pub struct Listener;
 
-fn is_not_afk(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bool {
+fn is_afk_channel(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bool {
    guild_id
       .to_guild_cached(&ctx.cache)
       .and_then(|guild| guild.read().afk_channel_id)
-      .map_or(true, |afk_id| afk_id != channel_id)
+      .map_or(false, |afk_id| afk_id == channel_id)
 }
 
-fn channel_changed(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, old_id: Option<ChannelId>) -> bool {
+fn moved_to_non_afk(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, old_id: Option<ChannelId>) -> bool {
    let moved_or_joined = old_id
       .map(|old_channel_id| old_channel_id != channel_id)
       .unwrap_or(true);
 
-   moved_or_joined && is_not_afk(ctx, guild_id, channel_id)
+   moved_or_joined && !is_afk_channel(ctx, guild_id, channel_id)
 }
 
 fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id: UserId) {
@@ -40,13 +41,19 @@ fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id
    }
 }
 
+fn all_afk_states(ctx: &Context, guild_id: GuildId, states: Values<UserId, VoiceState>) -> bool {
+   states
+      .filter(|state| state.user_id != ctx.cache.read().user.id)
+      .all(|state| state.channel_id.map_or(true, |id| is_afk_channel(ctx, guild_id, id)))
+}
+
 fn leave_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
    match guild_id
       .and_then(|id| id.to_guild_cached(&ctx.cache))
-      .map(|guild| guild.read().voice_states.len())
+      .map(|guild| guild.read().voice_states.clone())
    {
       // the bot is the only one left in voice
-      Some(1) => {
+      Some(states) if states.len() == 1 || all_afk_states(&ctx, guild_id.unwrap(), states.values()) => {
          let manager_lock = ctx
             .data
             .read()
@@ -91,7 +98,7 @@ impl EventHandler for Listener {
 
    fn voice_state_update(&self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState) {
       match new.channel_id {
-         Some(channel_id) if channel_changed(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) => {
+         Some(channel_id) if moved_to_non_afk(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) => {
             play_entrance(ctx, guild_id.unwrap(), channel_id, new.user_id)
          }
          Some(_) => (),
