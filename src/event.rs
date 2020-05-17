@@ -101,8 +101,7 @@ impl EventHandler for Listener {
          Some(channel_id) if moved_to_non_afk(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) => {
             play_entrance(ctx, guild_id.unwrap(), channel_id, new.user_id)
          }
-         Some(_) => (),
-         None => leave_if_last_user(ctx, guild_id),
+         _ => leave_if_last_user(ctx, guild_id),
       }
    }
 
