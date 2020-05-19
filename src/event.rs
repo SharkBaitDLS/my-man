@@ -32,10 +32,12 @@ fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id
    match user_id.to_user(&ctx) {
       Ok(user) => match user {
          User { bot: true, .. } => debug!("A bot joined a channel: {}", user.name),
-         _ => match audio_source::file(&user.name, |file| info!("No user sound file found for {}", file)) {
-            Some(source) => playback::join_and_play(ctx, guild_id, channel_id, source, 1.0),
-            None => (),
-         },
+         _ => {
+            if let Some(source) = audio_source::file(&user.name, |file| info!("No user sound file found for {}", file))
+            {
+               playback::join_and_play(ctx, guild_id, channel_id, source, 1.0)
+            }
+         }
       },
       Err(why) => error!("Could not get user name: {}", why.to_string()),
    }
@@ -84,9 +86,8 @@ fn play_youtube(ctx: Context, msg: Message) {
 
 fn play_file(ctx: Context, msg: Message) {
    let name = &msg.content.split_at(1).1.to_string();
-   match audio_source::file(name, |name| chat::dm_not_found(&ctx, &msg, name)) {
-      Some(source) => playback::join_message_and_play(ctx, msg, source, 1.0),
-      None => (),
+   if let Some(source) = audio_source::file(name, |name| chat::dm_not_found(&ctx, &msg, name)) {
+      playback::join_message_and_play(ctx, msg, source, 1.0)
    }
 }
 
@@ -107,7 +108,7 @@ impl EventHandler for Listener {
 
    fn message(&self, ctx: Context, msg: Message) {
       if let MessageType::Regular = msg.kind {
-         if msg.content.starts_with("?") {
+         if msg.content.starts_with('?') {
             if !msg.is_private() {
                log_on_error(msg.delete(&ctx));
             }

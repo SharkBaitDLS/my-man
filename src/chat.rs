@@ -29,7 +29,7 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
                         .file_stem()
                         .filter(|_| path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("mp3"))
                         .and_then(|stem| stem.to_str())
-                        .map(|name| String::from(name))
+                        .map(String::from)
                   })
                   .ok()
                   .flatten()
@@ -53,7 +53,7 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
    }
 }
 
-pub fn dm_not_found(ctx: &Context, msg: &Message, name: &String) {
+pub fn dm_not_found(ctx: &Context, msg: &Message, name: &str) {
    log_on_error(
       msg.author
          .direct_message(ctx, |m| m.content(format!("Cannot find audio file for {}", name))),

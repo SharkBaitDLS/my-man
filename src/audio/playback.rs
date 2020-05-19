@@ -39,7 +39,7 @@ fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> Option<Conn
          .guilds(&ctx.http)
          .unwrap_or_else(|err| {
             error!("Error retrieving this bot's guilds: {}", &err);
-            return Vec::new();
+            Vec::new()
          })
          .into_iter()
          .filter_map(|info| info.id.to_guild_cached(&ctx.cache))

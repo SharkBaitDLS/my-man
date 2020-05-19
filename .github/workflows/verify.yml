@@ -1,8 +1,7 @@
-name: Deploy to Container
+name: Verify
 
 on:
-  push:
-    branches: [ master ]
+  pull-request:
     paths-ignore:
     - '**.md'
 
@@ -36,30 +35,3 @@ jobs:
       run: cargo clippy -D warnings
     - name: Test
       run: cargo test
-    - name: Build
-      run: cargo build --release
-    - name: Upload result
-      uses: actions/upload-artifact@v1
-      with:
-        name: release
-        path: target/release/my_man
-
-  deploy:
-    runs-on: self-hosted
-    needs: build
-    steps:
-      - name: Download release binary
-        uses: actions/download-artifact@v1
-        with:
-          name: release
-      - name: Deploy
-        run: cp -f release/my_man ~/ && chmod +x ~/my_man
-      - name: Install Dependent Packages
-        run: apt-get update && apt-get --assume-yes install ffmpeg curl
-      - name: Install Youtube DL
-        run: >
-          youtube-dl --update
-          || wget https://yt-dl.org/downloads/latest/youtube-dl -O /usr/local/bin/youtube-dl
-          && chmod a+rx /usr/local/bin/youtube-dl
-      - name: Activate
-        run: systemctl restart soundboard

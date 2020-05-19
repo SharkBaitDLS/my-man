@@ -2,9 +2,9 @@ use log::error;
 use serenity::voice;
 use std::{env, fs::File, io::ErrorKind, path::Path};
 
-pub fn file<F>(name: &String, not_found_handler: F) -> Option<Box<dyn voice::AudioSource>>
+pub fn file<F>(name: &str, not_found_handler: F) -> Option<Box<dyn voice::AudioSource>>
 where
-   F: Fn(&String),
+   F: Fn(&str),
 {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
    let audio_file_path_str = file_dir + &name.to_lowercase() + ".mp3";
@@ -28,7 +28,7 @@ where
    }
 }
 
-pub fn youtube(url: &String) -> Option<Box<dyn voice::AudioSource>> {
+pub fn youtube(url: &str) -> Option<Box<dyn voice::AudioSource>> {
    match voice::ytdl(url) {
       Ok(source) => Option::from(source),
       Err(why) => {
