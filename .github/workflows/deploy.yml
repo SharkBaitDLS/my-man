@@ -44,6 +44,7 @@ jobs:
         path: target/release/my-man
   deploy:
     runs-on: self-hosted
+    needs: build
     steps:
       - name: Download release binary
         uses: actions/download-artifact@v1
