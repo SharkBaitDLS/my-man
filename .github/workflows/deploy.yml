@@ -6,9 +6,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
@@ -23,12 +21,12 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-git-index-${{ hashFiles('**/Cargo.lock') }}
     - name: Cache build artifacts
       uses: actions/cache@v1
       with:
         path: target
-        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-build-artifacts-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
       run: cargo build --release
     - name: Test
@@ -38,6 +36,7 @@ jobs:
       with:
         name: release
         path: target/release/my_man
+
   deploy:
     runs-on: self-hosted
     needs: build
@@ -47,7 +46,7 @@ jobs:
         with:
           name: release
       - name: Deploy
-        run: cp release/my_man ~/ && chmod +x ~/my_man
+        run: cp -f release/my_man ~/ && chmod +x ~/my_man
       - name: Install Dependent Packages
         run: apt-get update && apt-get --assume-yes install ffmpeg curl
       - name: Install Youtube DL
