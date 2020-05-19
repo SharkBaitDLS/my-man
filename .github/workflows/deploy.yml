@@ -36,6 +36,6 @@ jobs:
         with:
           name: release
       - name: Deploy
-        run: cp release/my_man ~/
+        run: cp release/my_man ~/ && chmod +x ~/my_man
       - name: Activate
         run: systemctl restart soundboard
