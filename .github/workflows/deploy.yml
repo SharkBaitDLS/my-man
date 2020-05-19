@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     - name: Cache cargo registry
@@ -28,8 +28,14 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
+      env:
+        SODIUM_LIB_DIR: /usr/lib64
+        SODIUM_SHARED: 1
       run: cargo build --release
     - name: Run tests
+      env:
+        SODIUM_LIB_DIR: /usr/lib64
+        SODIUM_SHARED: 1
       run: cargo test
     - name: Upload result
       uses: actions/upload-artifact@v1
