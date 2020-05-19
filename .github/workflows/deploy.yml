@@ -41,7 +41,7 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: release
-        path: target/release/my-man
+        path: target/release/my_man
   deploy:
     runs-on: self-hosted
     needs: build
@@ -51,6 +51,6 @@ jobs:
         with:
           name: release
       - name: Deploy
-        run: cp release/my-man ~/
+        run: cp release/my_man ~/
       - name: Activate
         run: systemctl restart soundboard
