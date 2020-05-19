@@ -1,4 +1,4 @@
-name: Rust
+name: Deploy to Container
 
 on:
   push:
@@ -9,18 +9,16 @@ on:
 jobs:
   build:
 
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
     - name: Build
-      env:
-        SODIUM_LIB_DIR: /usr/lib64
-        SODIUM_SHARED: 1
       run: cargo build --release
-    - name: Run tests
-      env:
-        SODIUM_LIB_DIR: /usr/lib64
-        SODIUM_SHARED: 1
+    - name: Test
       run: cargo test
     - name: Upload result
       uses: actions/upload-artifact@v1
