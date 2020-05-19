@@ -33,7 +33,7 @@ jobs:
     - name: Lint
       run: cargo fmt -- --check
     - name: Clippy
-      run: cargo clippy -D warnings
+      run: cargo clippy -- -D warnings
     - name: Test
       run: cargo test
     - name: Build
