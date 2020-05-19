@@ -5,8 +5,8 @@ Note: this depends on [serenity-rs](https://github.com/serenity-rs/serenity) whi
 
 ### Running
 #### Runtime Prerequisites
-* ffmpeg
-* youtube-dl
+* [ffmpeg](https://ffmpeg.org/download.html)
+* [youtube-dl](https://ytdl-org.github.io/youtube-dl/download.html)
 
 #### Execution
 Run the binary with the following environment variables set:
