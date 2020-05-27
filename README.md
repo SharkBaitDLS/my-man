@@ -1,7 +1,7 @@
 ### Building
 `cargo build [--release]`
 
-Note: this depends on [serenity-rs](https://github.com/serenity-rs/serenity) which will attempt to build `libopus` and `libsodium` for you, but on some systems those may need to be manually built.
+Note: this depends on [serenity-rs](https://github.com/serenity-rs/serenity) which in turn depends on [audiopus](https://crates.io/crates/audiopus) and [sodiumoxide](https://crates.io/crates/sodiumoxide). On some platforms those may need to have their dependent libraries manually built and linked rather than built by the crates themselves. Consult the crate docs for those packages for more information on setting up your build environment.
 
 ### Running
 #### Runtime Prerequisites
