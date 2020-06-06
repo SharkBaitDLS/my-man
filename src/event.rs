@@ -122,14 +122,7 @@ impl EventHandler for Listener {
       activity.kind = ActivityType::Custom;
       activity.details = Some("Type \"?help\" in chat".to_string());
       ctx.set_activity(activity);
-      let custom_presences = ready.presences.values().find(|presence| {
-         presence
-            .activity
-            .as_ref()
-            .map(|activity| activity.kind == ActivityType::Custom)
-            .unwrap_or(false)
-      });
-      info!("{:?}", custom_presences);
+      info!("{:?}", ready.presences.values());
    }
 
    fn voice_state_update(&self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState) {
