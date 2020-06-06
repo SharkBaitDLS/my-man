@@ -118,10 +118,8 @@ pub struct Listener;
 impl EventHandler for Listener {
    fn ready(&self, ctx: Context, ready: Ready) {
       info!("{} is connected!", ready.user.name);
-      let mut activity = Activity::playing("Custom Status"); // Discord requires this magic string
-      activity.kind = ActivityType::Custom;
-      activity.state = Some("Type \"?help\" in chat".to_string());
-      ctx.set_activity(activity);
+      // Discord's API doesn't support custom statuses: https://github.com/discord/discord-api-docs/issues/1160
+      ctx.set_activity(Activity::playing("Type \"?help\" in chat"));
    }
 
    fn voice_state_update(&self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState) {
