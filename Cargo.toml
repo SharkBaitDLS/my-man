@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 env_logger = "*"
 log = "*"
+metrics = "*"
 
 [dependencies.serenity]
 version = "0.8"

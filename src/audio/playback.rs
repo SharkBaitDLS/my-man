@@ -16,7 +16,7 @@ impl TypeMapKey for VoiceManager {
    type Value = Arc<Mutex<ClientVoiceManager>>;
 }
 
-fn get_manager_lock(ctx: Context) -> Arc<Mutex<ClientVoiceManager>> {
+pub fn get_manager_lock(ctx: Context) -> Arc<Mutex<ClientVoiceManager>> {
    ctx.data
       .read()
       .get::<VoiceManager>()

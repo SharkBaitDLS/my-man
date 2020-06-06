@@ -1,7 +1,8 @@
 use crate::audio::{audio_source, playback};
 use crate::chat;
 use crate::util::log_on_error;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
+use metrics::counter;
 use serenity::{
    client::{Context, EventHandler},
    model::{
@@ -9,9 +10,7 @@ use serenity::{
       id::UserId, user::User, voice::VoiceState,
    },
 };
-use std::collections::hash_map::Values;
-
-pub struct Listener;
+use std::collections::hash_map::{HashMap, Values};
 
 fn is_afk_channel(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bool {
    guild_id
@@ -26,6 +25,51 @@ fn moved_to_non_afk(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, old
       .unwrap_or(true);
 
    moved_or_joined && !is_afk_channel(ctx, guild_id, channel_id)
+}
+
+fn all_afk_states(ctx: &Context, guild_id: GuildId, states: Values<UserId, VoiceState>) -> bool {
+   states
+      .filter(|state| state.user_id != ctx.cache.read().user.id)
+      .all(|state| state.channel_id.map_or(true, |id| is_afk_channel(ctx, guild_id, id)))
+}
+
+fn only_user_in_channel(ctx: &Context, states: &HashMap<UserId, VoiceState>) -> bool {
+   let my_channel_id = states.get(&ctx.cache.read().user.id).and_then(|user| user.channel_id);
+
+   1 == states
+      .values()
+      .filter(|state| state.channel_id == my_channel_id)
+      .count()
+}
+
+fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
+   match guild_id
+      .and_then(|id| id.to_guild_cached(&ctx.cache))
+      .map(|guild| guild.read().voice_states.clone())
+   {
+      // if the bot is the only one left in voice, disconnect from voice
+      Some(states) if states.len() == 1 || all_afk_states(&ctx, guild_id.unwrap(), states.values()) => {
+         let manager_lock = playback::get_manager_lock(ctx);
+         let mut manager = manager_lock.lock();
+         manager.leave(guild_id.unwrap());
+      }
+      // if the bot is the only one left in its channel, and others are active in the server, join them
+      Some(states) if states.len() > 1 && only_user_in_channel(&ctx, &states) => {
+         let first_active_channel = states
+            .values()
+            .filter(|state| state.user_id != ctx.cache.read().user.id)
+            .find_map(|state| state.channel_id);
+
+         if let Some(channel_id) = first_active_channel {
+            let manager_lock = playback::get_manager_lock(ctx);
+            let mut manager = manager_lock.lock();
+            manager.join(guild_id.unwrap(), channel_id);
+         } else {
+            warn!("No channel found to join, but the number of states indicated there should be");
+         }
+      }
+      _ => (),
+   }
 }
 
 fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id: UserId) {
@@ -43,34 +87,8 @@ fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id
    }
 }
 
-fn all_afk_states(ctx: &Context, guild_id: GuildId, states: Values<UserId, VoiceState>) -> bool {
-   states
-      .filter(|state| state.user_id != ctx.cache.read().user.id)
-      .all(|state| state.channel_id.map_or(true, |id| is_afk_channel(ctx, guild_id, id)))
-}
-
-fn leave_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
-   match guild_id
-      .and_then(|id| id.to_guild_cached(&ctx.cache))
-      .map(|guild| guild.read().voice_states.clone())
-   {
-      // the bot is the only one left in voice
-      Some(states) if states.len() == 1 || all_afk_states(&ctx, guild_id.unwrap(), states.values()) => {
-         let manager_lock = ctx
-            .data
-            .read()
-            .get::<playback::VoiceManager>()
-            .cloned()
-            .expect("Expected VoiceManager in data map");
-         let mut manager = manager_lock.lock();
-         manager.leave(guild_id.unwrap());
-      }
-      _ => (),
-   }
-}
-
 fn play_youtube(ctx: Context, msg: Message) {
-   let url = msg.content.split_at(4).1.to_string();
+   let url = msg.content.split_at(4).1;
    if !url.starts_with("http") {
       log_on_error(
          msg.author
@@ -84,12 +102,18 @@ fn play_youtube(ctx: Context, msg: Message) {
    }
 }
 
+fn get_file_name(msg: &Message) -> &str {
+   msg.content.split_at(1).1
+}
+
 fn play_file(ctx: Context, msg: Message) {
-   let name = &msg.content.split_at(1).1.to_string();
+   let name = get_file_name(&msg);
    if let Some(source) = audio_source::file(name, |name| chat::dm_not_found(&ctx, &msg, name)) {
       playback::join_message_and_play(ctx, msg, source, 1.0)
    }
 }
+
+pub struct Listener;
 
 impl EventHandler for Listener {
    fn ready(&self, ctx: Context, ready: Ready) {
@@ -102,7 +126,7 @@ impl EventHandler for Listener {
          Some(channel_id) if moved_to_non_afk(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) => {
             play_entrance(ctx, guild_id.unwrap(), channel_id, new.user_id)
          }
-         _ => leave_if_last_user(ctx, guild_id),
+         _ => move_if_last_user(ctx, guild_id),
       }
    }
 
@@ -118,7 +142,10 @@ impl EventHandler for Listener {
                "?stop" => playback::stop(ctx, msg),
                "?summon" => playback::join_message(ctx, msg),
                content if content.starts_with("?yt ") => play_youtube(ctx, msg),
-               _ => play_file(ctx, msg),
+               _ => {
+                  counter!("sound_request", 1, "name" => get_file_name(&msg).to_string());
+                  play_file(ctx, msg)
+               }
             };
          }
       }
