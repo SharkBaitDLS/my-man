@@ -6,8 +6,8 @@ use metrics::counter;
 use serenity::{
    client::{Context, EventHandler},
    model::{
-      channel::Message, channel::MessageType, gateway::Activity, gateway::ActivityType, gateway::Ready, id::ChannelId,
-      id::GuildId, id::UserId, user::User, voice::VoiceState,
+      channel::Message, channel::MessageType, gateway::Activity, gateway::Ready, id::ChannelId, id::GuildId,
+      id::UserId, user::User, voice::VoiceState,
    },
 };
 use std::collections::hash_map::{HashMap, Values};
