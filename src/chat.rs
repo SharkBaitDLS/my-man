@@ -1,7 +1,7 @@
 use crate::util::log_on_error;
 use log::error;
 use serenity::{builder::CreateMessage, client::Context, model::channel::Message};
-use std::{collections::BinaryHeap, convert::identity, env, fs::read_dir};
+use std::{collections::BinaryHeap, env, fs::read_dir};
 
 pub fn help<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
    msg.content(
@@ -21,7 +21,7 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
    let file_names = read_dir(file_dir)
       .map(|entries| {
          entries
-            .map(|maybe_entry| {
+            .filter_map(|maybe_entry| {
                maybe_entry
                   .map(|entry| {
                      let path = entry.path();
@@ -34,7 +34,6 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
                   .ok()
                   .flatten()
             })
-            .filter_map(identity)
             .collect()
       })
       .unwrap_or_else(|err| {

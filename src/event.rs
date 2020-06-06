@@ -6,8 +6,8 @@ use metrics::counter;
 use serenity::{
    client::{Context, EventHandler},
    model::{
-      channel::Message, channel::MessageType, gateway::Activity, gateway::Ready, id::ChannelId, id::GuildId,
-      id::UserId, user::User, voice::VoiceState,
+      channel::Message, channel::MessageType, gateway::Activity, gateway::ActivityType, gateway::Ready, id::ChannelId,
+      id::GuildId, id::UserId, user::User, voice::VoiceState,
    },
 };
 use std::collections::hash_map::{HashMap, Values};
@@ -118,7 +118,9 @@ pub struct Listener;
 impl EventHandler for Listener {
    fn ready(&self, ctx: Context, ready: Ready) {
       info!("{} is connected!", ready.user.name);
-      ctx.set_activity(Activity::playing("Type ?help in chat"));
+      let mut activity = Activity::playing("Type ?help in chat");
+      activity.kind = ActivityType::Custom;
+      ctx.set_activity(activity);
    }
 
    fn voice_state_update(&self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState) {
