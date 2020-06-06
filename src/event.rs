@@ -118,8 +118,9 @@ pub struct Listener;
 impl EventHandler for Listener {
    fn ready(&self, ctx: Context, ready: Ready) {
       info!("{} is connected!", ready.user.name);
-      let mut activity = Activity::playing("Type ?help in chat");
+      let mut activity = Activity::playing("");
       activity.kind = ActivityType::Custom;
+      activity.details = Some("Type \"?help\" in chat".to_string());
       ctx.set_activity(activity);
    }
 
