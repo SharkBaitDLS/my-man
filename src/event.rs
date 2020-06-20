@@ -58,7 +58,11 @@ fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
          let first_active_channel = states
             .values()
             .filter(|state| state.user_id != ctx.cache.read().user.id)
-            .find_map(|state| state.channel_id);
+            .find_map(|state| {
+               state
+                  .channel_id
+                  .filter(|channel_id| is_afk_channel(&ctx, guild_id.unwrap(), *channel_id))
+            });
 
          if let Some(channel_id) = first_active_channel {
             let manager_lock = playback::get_manager_lock(ctx);
