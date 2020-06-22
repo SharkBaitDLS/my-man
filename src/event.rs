@@ -61,7 +61,7 @@ fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
             .find_map(|state| {
                state
                   .channel_id
-                  .filter(|channel_id| is_afk_channel(&ctx, guild_id.unwrap(), *channel_id))
+                  .filter(|channel_id| !is_afk_channel(&ctx, guild_id.unwrap(), *channel_id))
             });
 
          if let Some(channel_id) = first_active_channel {
