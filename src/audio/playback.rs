@@ -128,14 +128,3 @@ pub fn join_message_and_play(ctx: Context, msg: Message, source: Box<dyn voice::
    let connect_to = get_connection_data_or_return!(ctx, msg);
    join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume)
 }
-
-pub fn join_message(ctx: Context, msg: Message) {
-   let connect_to = get_connection_data_or_return!(ctx, msg);
-   let manager_lock = get_manager_lock(ctx);
-   let mut manager = manager_lock.lock();
-
-   match manager.join(connect_to.guild, connect_to.channel) {
-      Some(_) => (),
-      None => error!("Could not load audio handler for playback"),
-   }
-}
