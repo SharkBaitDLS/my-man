@@ -65,9 +65,13 @@ fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
             });
 
          if let Some(channel_id) = first_active_channel {
-            let manager_lock = playback::get_manager_lock(ctx);
-            let mut manager = manager_lock.lock();
-            manager.join(guild_id.unwrap(), channel_id);
+            if let Some(source) = audio_source::file("myman", |file| info!("No user sound file found for {}", file)) {
+               playback::join_and_play(ctx, guild_id.unwrap(), channel_id, source, 1.0)
+            } else {
+               let manager_lock = playback::get_manager_lock(ctx);
+               let mut manager = manager_lock.lock();
+               manager.join(guild_id.unwrap(), channel_id);
+            }
          } else {
             warn!("No channel found to join, but the number of states indicated there should be");
          }
@@ -145,7 +149,11 @@ impl EventHandler for Listener {
                "?help" => log_on_error(msg.author.direct_message(ctx, chat::help)),
                "?list" => log_on_error(msg.author.direct_message(ctx, chat::list)),
                "?stop" => playback::stop(ctx, msg),
-               "?summon" => playback::join_message(ctx, msg),
+               "?summon" => {
+                  let mut my_man_msg = msg;
+                  my_man_msg.content = "?myman".to_string();
+                  play_file(ctx, my_man_msg)
+               }
                content if content.starts_with("?yt ") => play_youtube(ctx, msg),
                _ => {
                   counter!("sound_request", 1, "name" => get_file_name(&msg).to_string());
