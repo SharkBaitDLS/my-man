@@ -8,7 +8,8 @@ where
 {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
    let audio_file_path_str = file_dir + &name.to_lowercase() + ".mp3";
-   let path = Path::new(&(audio_file_path_str));
+   let path = Path::new(&audio_file_path_str);
+
    match File::open(&path) {
       Err(why) => {
          match why.kind() {
@@ -19,6 +20,7 @@ where
       }
       Ok(file) => file,
    };
+
    match voice::ffmpeg(path) {
       Ok(source) => Option::from(source),
       Err(why) => {

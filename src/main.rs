@@ -10,7 +10,7 @@ use std::{env, sync::Arc};
 fn main() {
    env_logger::init();
    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-   let mut client = Client::new(token, event::Listener).expect("Err creating client");
+   let mut client = Client::new(token, event::listener::SoundboardListener).expect("Err creating client");
 
    {
       let mut data = client.data.write();

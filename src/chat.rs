@@ -8,10 +8,10 @@ pub fn help<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
       "You can type any of the following commands:
 ```
 ?list             - Returns a list of available sound files.
-?soundFileName    - Plays the specified sound from the list.
-?yt youtubeLink   - Plays the youtube link specified.
-?stop             - Stops the sound that is currently playing.
-?summon           - Summon the bot to your channel.
+?<soundFileName>  - Plays the specified sound from the list.
+?yt <youtubeLink> - Plays the youtube link specified.
+?stop             - Stops the currently playing sound(s).
+?summon           - Summon the bot to your current voice channel.
 ```",
    )
 }
@@ -45,7 +45,7 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
       msg.content("No MP3 files found for playback in the configured directory!")
    } else {
       let list_message = file_names.into_sorted_vec().into_iter().fold(
-         String::from("Type any of the following into the chat to play the sound:\n```\n"),
+         String::from("Type any of the following into chat to play the sound:\n```\n"),
          |accum, path| accum + "?" + &path + "\n",
       );
       msg.content(list_message + "```")

@@ -57,25 +57,15 @@ fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> Option<Conn
             guild: guild.read().id,
             channel: channel_id,
          }),
-         None => None,
-      }
-   })
-}
-
-macro_rules! get_connection_data_or_return {
-   ($ctx:ident, $msg:ident) => {
-      match get_connection_data_from_message(&$ctx, &$msg) {
-         Some(data) => data,
          None => {
             log_on_error(
-               $msg
-                  .author
-                  .direct_message($ctx, |m| m.content("You are not in a voice channel!")),
+               msg.author
+                  .direct_message(ctx, |m| m.content("You are not in a voice channel!")),
             );
-            return;
+            None
          }
-      };
-   };
+      }
+   })
 }
 
 fn play_source(handler: &mut Handler, source: Box<dyn voice::AudioSource>, volume: f32) {
@@ -98,7 +88,7 @@ pub fn join_and_play(
             handler.join(channel_id);
             // the underlying HTTP request to Discord's API to switch channels
             // doesn't immediately take effect, so the call above returning doesn't actually
-            // mean the switch has happened
+            // mean the switch has happened, so sleep a bit to make sure people hear the whole clip
             sleep(Duration::from_secs(1));
          }
          play_source(handler, source, volume);
@@ -114,17 +104,19 @@ pub fn join_and_play(
 }
 
 pub fn stop(ctx: Context, msg: Message) {
-   let connect_to = get_connection_data_or_return!(ctx, msg);
-   let manager_lock = get_manager_lock(ctx);
-   let mut manager = manager_lock.lock();
+   if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg) {
+      let manager_lock = get_manager_lock(ctx);
+      let mut manager = manager_lock.lock();
 
-   match manager.get_mut(connect_to.guild) {
-      Some(handler) => handler.stop(),
-      None => warn!("Could not load audio handler to stop"),
+      match manager.get_mut(connect_to.guild) {
+         Some(handler) => handler.stop(),
+         None => warn!("Could not load audio handler to stop"),
+      }
    }
 }
 
 pub fn join_message_and_play(ctx: Context, msg: Message, source: Box<dyn voice::AudioSource>, volume: f32) {
-   let connect_to = get_connection_data_or_return!(ctx, msg);
-   join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume)
+   if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg) {
+      join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume)
+   }
 }
