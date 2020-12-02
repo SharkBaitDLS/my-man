@@ -2,7 +2,7 @@ use log::error;
 use serenity::voice;
 use std::{env, fs::File, io::ErrorKind, path::Path};
 
-pub fn file<F>(name: &str, not_found_handler: F) -> Option<Box<dyn voice::AudioSource>>
+pub async fn file<F>(name: &str, not_found_handler: F) -> Option<Box<dyn voice::AudioSource>>
 where
    F: Fn(&str),
 {
@@ -10,28 +10,23 @@ where
    let audio_file_path_str = file_dir + &name.to_lowercase() + ".mp3";
    let path = Path::new(&audio_file_path_str);
 
-   match File::open(&path) {
-      Err(why) => {
-         match why.kind() {
+   match File::open(&path).err() {
+      Some(err) => {
+         match err.kind() {
             ErrorKind::NotFound => not_found_handler(name),
-            _ => error!("couldn't open {}: {}", audio_file_path_str, why.to_string()),
+            _ => error!("couldn't open {}: {}", audio_file_path_str, err.to_string()),
          };
-         return None;
-      }
-      Ok(file) => file,
-   };
-
-   match voice::ffmpeg(path) {
-      Ok(source) => Option::from(source),
-      Err(why) => {
-         error!("Err starting source: {:?}", why);
          None
       }
+      None => voice::ffmpeg(path)
+         .await
+         .map_err(|err| error!("Err starting source: {:?}", err))
+         .ok(),
    }
 }
 
-pub fn youtube(url: &str) -> Option<Box<dyn voice::AudioSource>> {
-   match voice::ytdl(url) {
+pub async fn youtube(url: &str) -> Option<Box<dyn voice::AudioSource>> {
+   match voice::ytdl(url).await {
       Ok(source) => Option::from(source),
       Err(why) => {
          error!("Err starting source: {:?}", why);

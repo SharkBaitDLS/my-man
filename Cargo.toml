@@ -10,7 +10,9 @@ edition = "2018"
 env_logger = "*"
 log = "*"
 metrics = "*"
+futures = "*"
+async-trait = "*"
 
 [dependencies.serenity]
-version = "0.8"
+version = "0.9"
 features = ["cache", "framework", "standard_framework", "voice", "http", "rustls_backend"]

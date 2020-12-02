@@ -1,4 +1,6 @@
 use crate::util::log_on_error;
+use futures::executor::block_on;
+use futures::stream::{FuturesOrdered, StreamExt};
 use log::{error, warn};
 use serenity::voice::{Handler, LockedAudio};
 use serenity::{
@@ -16,9 +18,10 @@ impl TypeMapKey for VoiceManager {
    type Value = Arc<Mutex<ClientVoiceManager>>;
 }
 
-pub fn get_manager_lock(ctx: Context) -> Arc<Mutex<ClientVoiceManager>> {
+pub async fn get_manager_lock(ctx: Context) -> Arc<Mutex<ClientVoiceManager>> {
    ctx.data
       .read()
+      .await
       .get::<VoiceManager>()
       .cloned()
       .expect("Expected VoiceManager in data map")
@@ -29,58 +32,65 @@ struct ConnectionData {
    channel: ChannelId,
 }
 
-fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> Option<ConnectionData> {
-   let possible_guilds = match msg.guild(&ctx.cache) {
+async fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> Option<ConnectionData> {
+   let possible_guilds = match msg.guild(&ctx.cache).await {
       Some(guild) => vec![guild],
-      None => ctx
-         .cache
-         .read()
-         .user
-         .guilds(&ctx.http)
-         .unwrap_or_else(|err| {
-            error!("Error retrieving this bot's guilds: {}", &err);
-            Vec::new()
-         })
-         .into_iter()
-         .filter_map(|info| info.id.to_guild_cached(&ctx.cache))
-         .collect(),
+      None => {
+         ctx.cache
+            .current_user()
+            .await
+            .guilds(&ctx.http)
+            .await
+            .unwrap_or_else(|err| {
+               error!("Error retrieving this bot's guilds: {}", &err);
+               Vec::new()
+            })
+            .into_iter()
+            .map(|info| info.id.to_guild_cached(&ctx.cache))
+            .collect::<FuturesOrdered<_>>()
+            .filter_map(|guild| async { guild })
+            .collect::<Vec<_>>()
+            .await
+      }
    };
 
    possible_guilds.into_iter().find_map(|guild| {
       match guild
-         .read()
          .voice_states
          .get(&msg.author.id)
          .and_then(|state| state.channel_id)
       {
          Some(channel_id) => Some(ConnectionData {
-            guild: guild.read().id,
+            guild: guild.id,
             channel: channel_id,
          }),
          None => {
-            log_on_error(
-               msg.author
-                  .direct_message(ctx, |m| m.content("You are not in a voice channel!")),
-            );
+            block_on(async {
+               log_on_error(
+                  msg.author
+                     .direct_message(ctx, |m| m.content("You are not in a voice channel!")),
+               )
+               .await;
+            });
             None
          }
       }
    })
 }
 
-fn play_source(handler: &mut Handler, source: Box<dyn voice::AudioSource>, volume: f32) {
+async fn play_source(handler: &mut Handler, source: Box<dyn voice::AudioSource>, volume: f32) {
    let safe_audio: LockedAudio = handler.play_returning(source);
    {
-      let mut audio = safe_audio.lock();
+      let mut audio = safe_audio.lock().await;
       audio.volume(volume);
    }
 }
 
-pub fn join_and_play(
+pub async fn join_and_play(
    ctx: Context, guild_id: GuildId, channel_id: ChannelId, source: Box<dyn voice::AudioSource>, volume: f32,
 ) {
-   let manager_lock = get_manager_lock(ctx);
-   let mut manager = manager_lock.lock();
+   let manager_lock = get_manager_lock(ctx).await;
+   let mut manager = manager_lock.lock().await;
 
    match manager.get_mut(guild_id) {
       Some(handler) => {
@@ -91,32 +101,32 @@ pub fn join_and_play(
             // mean the switch has happened, so sleep a bit to make sure people hear the whole clip
             sleep(Duration::from_secs(1));
          }
-         play_source(handler, source, volume);
+         play_source(handler, source, volume).await;
       }
       None => match manager.join(guild_id, channel_id) {
          Some(handler) => {
             sleep(Duration::from_secs(1));
-            play_source(handler, source, volume);
+            play_source(handler, source, volume).await;
          }
          None => error!("Could not create audio handler for initial join"),
       },
-   }
+   };
 }
 
-pub fn stop(ctx: Context, msg: Message) {
-   if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg) {
-      let manager_lock = get_manager_lock(ctx);
-      let mut manager = manager_lock.lock();
+pub async fn stop(ctx: Context, msg: Message) {
+   if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg).await {
+      let manager_lock = get_manager_lock(ctx).await;
+      let mut manager = manager_lock.lock().await;
 
       match manager.get_mut(connect_to.guild) {
          Some(handler) => handler.stop(),
          None => warn!("Could not load audio handler to stop"),
       }
-   }
+   };
 }
 
-pub fn join_message_and_play(ctx: Context, msg: Message, source: Box<dyn voice::AudioSource>, volume: f32) {
-   if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg) {
-      join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume)
-   }
+pub async fn join_message_and_play(ctx: Context, msg: Message, source: Box<dyn voice::AudioSource>, volume: f32) {
+   if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg).await {
+      join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume).await
+   };
 }

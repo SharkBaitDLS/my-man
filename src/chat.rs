@@ -52,9 +52,10 @@ pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
    }
 }
 
-pub fn dm_not_found(ctx: &Context, msg: &Message, name: &str) {
+pub async fn dm_not_found(ctx: &Context, msg: &Message, name: &str) {
    log_on_error(
       msg.author
          .direct_message(ctx, |m| m.content(format!("Cannot find audio file for {}", name))),
    )
+   .await;
 }
