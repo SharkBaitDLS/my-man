@@ -27,12 +27,12 @@ pub async fn get_manager_lock(ctx: Context) -> Arc<Mutex<ClientVoiceManager>> {
       .expect("Expected VoiceManager in data map")
 }
 
-struct ConnectionData {
-   guild: GuildId,
+pub struct ConnectionData {
+   pub guild: GuildId,
    channel: ChannelId,
 }
 
-async fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> Option<ConnectionData> {
+pub async fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> Option<ConnectionData> {
    let possible_guilds = match msg.guild(&ctx.cache).await {
       Some(guild) => vec![guild],
       None => {
@@ -125,8 +125,14 @@ pub async fn stop(ctx: Context, msg: Message) {
    };
 }
 
+pub async fn join_connection_and_play(
+   ctx: Context, connect_to: ConnectionData, source: Box<dyn voice::AudioSource>, volume: f32,
+) {
+   join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume).await
+}
+
 pub async fn join_message_and_play(ctx: Context, msg: Message, source: Box<dyn voice::AudioSource>, volume: f32) {
    if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg).await {
-      join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume).await
+      join_connection_and_play(ctx, connect_to, source, volume).await;
    };
 }

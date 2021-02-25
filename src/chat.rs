@@ -1,5 +1,8 @@
 use crate::util::log_on_error;
+use futures::executor::block_on;
+use futures::stream::{FuturesOrdered, StreamExt};
 use log::error;
+use serenity::model::user::User;
 use serenity::{builder::CreateMessage, client::Context, model::channel::Message};
 use std::{collections::BinaryHeap, env, fs::read_dir};
 
@@ -16,40 +19,66 @@ pub fn help<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b>
    )
 }
 
-pub fn list<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
+pub fn list<'a, 'b>(ctx: &Context, author: &User, msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
-   let file_names = read_dir(file_dir)
-      .map(|entries| {
-         entries
-            .filter_map(|maybe_entry| {
-               maybe_entry
-                  .map(|entry| {
-                     let path = entry.path();
-                     path
-                        .file_stem()
-                        .filter(|_| path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("mp3"))
-                        .and_then(|stem| stem.to_str())
-                        .map(String::from)
-                  })
-                  .ok()
-                  .flatten()
-            })
-            .collect()
-      })
-      .unwrap_or_else(|err| {
-         error!("Could not list audio file directory: {}", err);
-         BinaryHeap::new()
-      });
 
-   if file_names.is_empty() {
-      msg.content("No MP3 files found for playback in the configured directory!")
-   } else {
-      let list_message = file_names.into_sorted_vec().into_iter().fold(
-         String::from("Type any of the following into chat to play the sound:\n```\n"),
-         |accum, path| accum + "?" + &path + "\n",
-      );
-      msg.content(list_message + "```")
-   }
+   let author_guilds = block_on(async {
+      let bot = ctx.cache.current_user().await;
+      if let Ok(guilds) = bot.guilds(ctx).await {
+         guilds
+            .iter()
+            .map(|guild_id| ctx.cache.guild(guild_id))
+            .collect::<FuturesOrdered<_>>()
+            .filter_map(|maybe_guild| async { maybe_guild.filter(|guild| guild.member_named(&author.name).is_some()) })
+            .collect::<Vec<_>>()
+            .await
+      } else {
+         Vec::new()
+      }
+   });
+
+   let mut content = "#Servers\n".to_owned();
+
+   author_guilds.iter().for_each(|guild| {
+      // TODO: platform agnostic paths
+      // TODO: handle directory traversal attacks
+      let guild_dir = String::from(&file_dir) + "/" + &guild.id.as_u64().to_string();
+
+      let file_names = read_dir(guild_dir)
+         .map(|entries| {
+            entries
+               .filter_map(|maybe_entry| {
+                  maybe_entry
+                     .map(|entry| {
+                        let path = entry.path();
+                        path
+                           .file_stem()
+                           .filter(|_| path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("mp3"))
+                           .and_then(|stem| stem.to_str())
+                           .map(String::from)
+                     })
+                     .ok()
+                     .flatten()
+               })
+               .collect()
+         })
+         .unwrap_or_else(|err| {
+            error!("Could not list audio file directory: {}", err);
+            BinaryHeap::new()
+         });
+
+      if file_names.is_empty() {
+         content.push_str(&format!("##{}\nNo commands available.\n", guild.name));
+      } else {
+         let list_message = file_names.into_sorted_vec().into_iter().fold(
+            format!("##{}\nCommands available:\n```\n", guild.name),
+            |accum, path| accum + "?" + &path + "\n",
+         );
+         content.push_str(&(list_message + "```\n"));
+      }
+   });
+
+   msg.content(content)
 }
 
 pub async fn dm_not_found(ctx: &Context, msg: &Message, name: &str) {

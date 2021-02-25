@@ -39,8 +39,8 @@ impl EventHandler for SoundboardListener {
                log_on_error(msg.delete(&ctx)).await;
             }
             match msg.content.as_ref() {
-               "?help" => log_on_error(msg.author.direct_message(ctx, chat::help)).await,
-               "?list" => log_on_error(msg.author.direct_message(ctx, chat::list)).await,
+               "?help" => log_on_error(msg.author.dm(ctx, chat::help)).await,
+               "?list" => log_on_error(msg.author.dm(&ctx, |dm| chat::list(&ctx, &msg.author, dm))).await,
                "?stop" => playback::stop(ctx, msg).await,
                "?summon" => {
                   let mut my_man_msg = msg;

@@ -1,13 +1,16 @@
 use log::error;
+use serenity::model::id::GuildId;
 use serenity::voice;
 use std::{env, fs::File, io::ErrorKind, path::Path};
 
-pub async fn file<F>(name: &str, not_found_handler: F) -> Option<Box<dyn voice::AudioSource>>
+pub async fn file<F>(name: &str, guild_id: &GuildId, not_found_handler: F) -> Option<Box<dyn voice::AudioSource>>
 where
    F: Fn(&str),
 {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
-   let audio_file_path_str = file_dir + &name.to_lowercase() + ".mp3";
+   // TODO: platform agnostic paths
+   // TODO: handle directory traversal attacks
+   let audio_file_path_str = file_dir + "/" + &guild_id.as_u64().to_string() + "/" + &name.to_lowercase() + ".mp3";
    let path = Path::new(&audio_file_path_str);
 
    match File::open(&path).err() {

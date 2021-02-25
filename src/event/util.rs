@@ -1,5 +1,6 @@
 use crate::audio::{audio_source, playback};
 use crate::chat;
+use crate::playback::get_connection_data_from_message;
 use crate::util::log_on_error;
 use futures::executor::block_on;
 use log::{debug, error, info, warn};
@@ -69,7 +70,9 @@ pub async fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
             });
 
          if let Some(channel_id) = first_active_channel {
-            if let Some(source) = audio_source::file("myman", |file| info!("No user file found for {}", file)).await {
+            if let Some(source) =
+               audio_source::file("myman", &guild_id.unwrap(), |file| info!("{} not found", file)).await
+            {
                playback::join_and_play(ctx, guild_id.unwrap(), channel_id, source, 1.0).await
             } else {
                let manager_lock = playback::get_manager_lock(ctx).await;
@@ -89,7 +92,8 @@ pub async fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelI
       Ok(user) => match user {
          User { bot: true, .. } => debug!("A bot joined a channel: {}", user.name),
          _ => {
-            if let Some(source) = audio_source::file(&user.name, |file| info!("No user file found for {}", file)).await
+            if let Some(source) =
+               audio_source::file(&user.name, &guild_id, |file| info!("No user file found for {}", file)).await
             {
                playback::join_and_play(ctx, guild_id, channel_id, source, 1.0).await
             }
@@ -121,7 +125,13 @@ pub fn get_file_name(msg: &Message) -> &str {
 
 pub async fn play_file(ctx: Context, msg: Message) {
    let name = get_file_name(&msg);
-   if let Some(source) = audio_source::file(name, |name| block_on(chat::dm_not_found(&ctx, &msg, name))).await {
-      playback::join_message_and_play(ctx, msg, source, 1.0).await
+   if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg).await {
+      if let Some(source) = audio_source::file(name, &connect_to.guild, |name| {
+         block_on(chat::dm_not_found(&ctx, &msg, name))
+      })
+      .await
+      {
+         playback::join_connection_and_play(ctx, connect_to, source, 1.0).await
+      }
    }
 }
