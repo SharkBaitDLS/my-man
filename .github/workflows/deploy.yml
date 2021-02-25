@@ -53,6 +53,6 @@ jobs:
         with:
           name: release
       - name: Deploy
-        run: cp -f release/my_man ~/ && chmod +x ~/my_man
+        run: cp -f release/my_man /home/soundboard/ && chmod +x /home/soundboard/my_man && chown soundboard /home/soundboard/my_man && chgrp soundboard /home/soundboard/my_man
       - name: Activate
         run: systemctl restart soundboard
