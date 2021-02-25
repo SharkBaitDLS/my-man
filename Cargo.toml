@@ -12,8 +12,12 @@ log = "*"
 metrics = "*"
 futures = "*"
 async-trait = "*"
-tokio = "*"
+songbird = "0.1"
+
+[dependencies.tokio]
+version = "*"
+features = ["macros", "rt-multi-thread"]
 
 [dependencies.serenity]
-version = "0.9"
-features = ["cache", "framework", "standard_framework", "voice", "http", "rustls_backend"]
+version = "0.10"
+features = ["cache", "client", "framework", "standard_framework", "voice", "http", "rustls_backend"]

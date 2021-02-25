@@ -1,30 +1,30 @@
 use crate::util::log_on_error;
 use futures::executor::block_on;
 use futures::stream::{FuturesOrdered, StreamExt};
-use log::{error, warn};
-use serenity::voice::{Handler, LockedAudio};
+use log::error;
 use serenity::{
-   client::{bridge::voice::ClientVoiceManager, Context},
+   client::{bridge::voice::VoiceGatewayManager, Context},
    model::{channel::Message, id::ChannelId, id::GuildId},
    prelude::Mutex,
    prelude::*,
-   voice,
 };
-use std::{sync::Arc, thread::sleep, time::Duration};
+use songbird::create_player;
+use songbird::input::Input;
+use songbird::Call;
+use songbird::Songbird;
+use std::sync::Arc;
+use tokio::sync::MutexGuard;
 
 pub struct VoiceManager;
 
 impl TypeMapKey for VoiceManager {
-   type Value = Arc<Mutex<ClientVoiceManager>>;
+   type Value = Arc<Mutex<dyn VoiceGatewayManager>>;
 }
 
-pub async fn get_manager_lock(ctx: Context) -> Arc<Mutex<ClientVoiceManager>> {
-   ctx.data
-      .read()
+pub async fn get_manager(ctx: Context) -> Arc<Songbird> {
+   songbird::get(&ctx)
       .await
-      .get::<VoiceManager>()
-      .cloned()
-      .expect("Expected VoiceManager in data map")
+      .expect("Songbird voice client should have been placed during initialization")
 }
 
 pub struct ConnectionData {
@@ -78,60 +78,36 @@ pub async fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> O
    })
 }
 
-async fn play_source(handler: &mut Handler, source: Box<dyn voice::AudioSource>, volume: f32) {
-   let safe_audio: LockedAudio = handler.play_returning(source);
-   {
-      let mut audio = safe_audio.lock().await;
-      audio.volume(volume);
-   }
+async fn play_source(mut call: MutexGuard<'_, Call>, source: Input, volume: f32) {
+   let (mut track, _) = create_player(source);
+   track.set_volume(volume);
+   call.play(track);
 }
 
-pub async fn join_and_play(
-   ctx: Context, guild_id: GuildId, channel_id: ChannelId, source: Box<dyn voice::AudioSource>, volume: f32,
-) {
-   let manager_lock = get_manager_lock(ctx).await;
-   let mut manager = manager_lock.lock().await;
+pub async fn join_and_play(ctx: Context, guild_id: GuildId, channel_id: ChannelId, source: Input, volume: f32) {
+   let manager = get_manager(ctx).await;
 
-   match manager.get_mut(guild_id) {
-      Some(handler) => {
-         if handler.channel_id != Some(channel_id) {
-            handler.join(channel_id);
-            // the underlying HTTP request to Discord's API to switch channels
-            // doesn't immediately take effect, so the call above returning doesn't actually
-            // mean the switch has happened, so sleep a bit to make sure people hear the whole clip
-            sleep(Duration::from_secs(1));
-         }
-         play_source(handler, source, volume).await;
-      }
-      None => match manager.join(guild_id, channel_id) {
-         Some(handler) => {
-            sleep(Duration::from_secs(1));
-            play_source(handler, source, volume).await;
-         }
-         None => error!("Could not create audio handler for initial join"),
-      },
-   };
+   match manager.join(guild_id, channel_id).await {
+      (call, Ok(_)) => play_source(call.lock().await, source, volume).await,
+      (_, Err(err)) => error!("Could not join to play audio: {}", err),
+   }
 }
 
 pub async fn stop(ctx: Context, msg: Message) {
    if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg).await {
-      let manager_lock = get_manager_lock(ctx).await;
-      let mut manager = manager_lock.lock().await;
+      let manager = get_manager(ctx).await;
 
-      match manager.get_mut(connect_to.guild) {
-         Some(handler) => handler.stop(),
-         None => warn!("Could not load audio handler to stop"),
-      }
-   };
+      if let Some(call) = manager.get(connect_to.guild) {
+         call.lock().await.stop();
+      };
+   }
 }
 
-pub async fn join_connection_and_play(
-   ctx: Context, connect_to: ConnectionData, source: Box<dyn voice::AudioSource>, volume: f32,
-) {
+pub async fn join_connection_and_play(ctx: Context, connect_to: ConnectionData, source: Input, volume: f32) {
    join_and_play(ctx, connect_to.guild, connect_to.channel, source, volume).await
 }
 
-pub async fn join_message_and_play(ctx: Context, msg: Message, source: Box<dyn voice::AudioSource>, volume: f32) {
+pub async fn join_message_and_play(ctx: Context, msg: Message, source: Input, volume: f32) {
    if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg).await {
       join_connection_and_play(ctx, connect_to, source, volume).await;
    };

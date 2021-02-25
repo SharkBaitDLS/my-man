@@ -54,9 +54,8 @@ pub async fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
    {
       // if the bot is the only one left in voice, disconnect from voice
       Some(states) if states.len() == 1 || all_afk_states(&ctx, guild_id.unwrap(), states.values()) => {
-         let manager_lock = playback::get_manager_lock(ctx).await;
-         let mut manager = manager_lock.lock().await;
-         manager.leave(guild_id.unwrap());
+         let manager = playback::get_manager(ctx).await;
+         let _ = manager.leave(guild_id.unwrap()).await.map_err(|err| error!("{}", err));
       }
       // if the bot is the only one left in its channel, and others are active in the server, join them
       Some(states) if states.len() > 1 && only_user_in_channel(&ctx, &states) => {
@@ -75,9 +74,10 @@ pub async fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
             {
                playback::join_and_play(ctx, guild_id.unwrap(), channel_id, source, 1.0).await
             } else {
-               let manager_lock = playback::get_manager_lock(ctx).await;
-               let mut manager = manager_lock.lock().await;
-               manager.join(guild_id.unwrap(), channel_id);
+               let manager = playback::get_manager(ctx).await;
+               if let (_, Err(err)) = manager.join(guild_id.unwrap(), channel_id).await {
+                  error!("Failed to join channel: {}", err);
+               }
             }
          } else {
             warn!("No channel found to join, but the number of states indicated there should be");

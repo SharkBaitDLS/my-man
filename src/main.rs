@@ -6,7 +6,8 @@ mod util;
 use audio::playback;
 use log::error;
 use serenity::{client::bridge::gateway::GatewayIntents, client::Client, framework::StandardFramework};
-use std::{env, sync::Arc};
+use songbird::SerenityInit;
+use std::env;
 
 #[tokio::main]
 async fn main() {
@@ -17,13 +18,9 @@ async fn main() {
       .event_handler(event::listener::SoundboardListener)
       .framework(StandardFramework::new())
       .intents(GatewayIntents::DIRECT_MESSAGES | GatewayIntents::GUILD_MESSAGES | GatewayIntents::GUILD_VOICE_STATES)
+      .register_songbird()
       .await
       .expect("Err creating client");
-
-   {
-      let mut data = client.data.write().await;
-      data.insert::<playback::VoiceManager>(Arc::clone(&client.voice_manager));
-   }
 
    if let Err(why) = client.start().await {
       error!("Client ended: {:?}", why)

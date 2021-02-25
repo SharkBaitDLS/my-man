@@ -19,6 +19,7 @@ impl EventHandler for SoundboardListener {
       // Discord's API doesn't support custom statuses: https://github.com/discord/discord-api-docs/issues/1160
       ctx.set_activity(Activity::listening("for messages, type \"?help\" in chat"))
          .await;
+      debug!("{:?} guilds are unavailable", ctx.cache.unavailable_guilds().await);
    }
 
    async fn voice_state_update(
