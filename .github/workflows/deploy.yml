@@ -2,7 +2,7 @@ name: Deploy to Container
 
 on:
   push:
-    branches: [ master ]
+    branches: [ mainline ]
     paths-ignore:
     - '**.md'
 
