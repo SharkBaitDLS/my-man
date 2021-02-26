@@ -17,7 +17,13 @@ async fn main() {
    let mut client = Client::builder(token)
       .event_handler(event::listener::SoundboardListener)
       .framework(StandardFramework::new())
-      .intents(GatewayIntents::DIRECT_MESSAGES | GatewayIntents::GUILD_MESSAGES | GatewayIntents::GUILD_VOICE_STATES)
+      .intents(
+         GatewayIntents::GUILDS
+            | GatewayIntents::GUILD_MEMBERS
+            | GatewayIntents::GUILD_MESSAGES
+            | GatewayIntents::GUILD_VOICE_STATES
+            | GatewayIntents::DIRECT_MESSAGES,
+      )
       .register_songbird()
       .await
       .expect("Err creating client");
