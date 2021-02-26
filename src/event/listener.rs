@@ -17,7 +17,7 @@ impl EventHandler for SoundboardListener {
    async fn ready(&self, ctx: Context, ready: Ready) {
       debug!("{} is connected!", ready.user.name);
       // Discord's API doesn't support custom statuses: https://github.com/discord/discord-api-docs/issues/1160
-      ctx.set_activity(Activity::listening("for messages, type \"?help\" in chat"))
+      ctx.set_activity(Activity::listening("messages, type \"?help\" in chat"))
          .await;
       debug!("{:?} guilds are unavailable", ctx.cache.unavailable_guilds().await);
    }
@@ -41,7 +41,10 @@ impl EventHandler for SoundboardListener {
             }
             match msg.content.as_ref() {
                "?help" => log_on_error(msg.author.dm(ctx, chat::help)).await,
-               "?list" => log_on_error(msg.author.dm(&ctx, |dm| chat::list(&ctx, &msg.author, dm))).await,
+               "?list" => {
+                  let content = chat::list(&ctx, &msg.author).await;
+                  log_on_error(msg.author.dm(&ctx, |dm| dm.content(content))).await
+               }
                "?stop" => playback::stop(ctx, msg).await,
                "?summon" => {
                   let mut my_man_msg = msg;

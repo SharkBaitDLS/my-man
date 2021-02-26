@@ -19,7 +19,6 @@ async fn main() {
       .framework(StandardFramework::new())
       .intents(
          GatewayIntents::GUILDS
-            | GatewayIntents::GUILD_MEMBERS
             | GatewayIntents::GUILD_MESSAGES
             | GatewayIntents::GUILD_VOICE_STATES
             | GatewayIntents::DIRECT_MESSAGES,
