@@ -126,10 +126,8 @@ pub fn get_file_name(msg: &Message) -> &str {
 pub async fn play_file(ctx: Context, msg: Message) {
    let name = get_file_name(&msg);
    if let Some(connect_to) = get_connection_data_from_message(&ctx, &msg).await {
-      if let Some(source) = audio_source::file(name, &connect_to.guild, |name| {
-         block_on(chat::dm_not_found(&ctx, &msg, name))
-      })
-      .await
+      if let Some(source) =
+         audio_source::file_async_nf(name, &connect_to.guild, |name| chat::dm_not_found(&ctx, &msg, name)).await
       {
          playback::join_connection_and_play(ctx, connect_to, source, 1.0).await
       }

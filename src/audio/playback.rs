@@ -1,5 +1,4 @@
 use crate::util::log_on_error;
-use futures::executor::block_on;
 use futures::stream::{FuturesOrdered, StreamExt};
 use log::error;
 use serenity::{
@@ -54,7 +53,7 @@ pub async fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> O
       }
    };
 
-   possible_guilds.into_iter().find_map(|guild| {
+   let connection_data = possible_guilds.into_iter().find_map(|guild| {
       match guild
          .voice_states
          .get(&msg.author.id)
@@ -64,18 +63,14 @@ pub async fn get_connection_data_from_message(ctx: &Context, msg: &Message) -> O
             guild: guild.id,
             channel: channel_id,
          }),
-         None => {
-            block_on(async {
-               log_on_error(
-                  msg.author
-                     .direct_message(ctx, |m| m.content("You are not in a voice channel!")),
-               )
-               .await;
-            });
-            None
-         }
+         None => None,
       }
-   })
+   });
+   if connection_data.is_none() {
+      log_on_error(msg.author.dm(ctx, |m| m.content("You are not in a voice channel!"))).await;
+   }
+
+   return connection_data;
 }
 
 async fn play_source(mut call: MutexGuard<'_, Call>, source: Input, volume: f32) {
