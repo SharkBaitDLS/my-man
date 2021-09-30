@@ -14,7 +14,13 @@ async fn main() {
    env_logger::init();
 
    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+   let application_id: u64 = env::var("APPLICATION_ID")
+      .expect("Expected an app id in the environment")
+      .parse()
+      .expect("A valid numerical ID");
+
    let mut client = Client::builder(token)
+      .application_id(application_id)
       .event_handler(event::listener::SoundboardListener)
       .framework(StandardFramework::new())
       .intents(

@@ -1,28 +1,21 @@
-use crate::util::log_on_error;
-use futures::stream::{FuturesOrdered, StreamExt};
+use futures::{
+   executor::block_on,
+   stream::{FuturesOrdered, StreamExt},
+};
 use log::error;
-use serenity::model::user::User;
-use serenity::{builder::CreateMessage, client::Context, model::channel::Message};
+use serenity::{
+   client::Context,
+   model::{id::GuildId, user::User},
+};
 use std::{collections::BinaryHeap, env, fs::read_dir};
 
-pub fn help<'a, 'b>(msg: &'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> {
-   msg.content(
-      "You can type any of the following commands:
-```
-?list             - Returns a list of available sound files.
-?<soundFileName>  - Plays the specified sound from the list.
-?yt <youtubeLink> - Plays the youtube link specified.
-?stop             - Stops the currently playing sound(s).
-?summon           - Summon the bot to your current voice channel.
-```",
-   )
-}
-
-pub async fn list(ctx: &Context, author: &User) -> String {
+pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User) -> String {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
    let bot = ctx.cache.current_user().await;
 
-   let author_guilds = if let Ok(guilds) = bot.guilds(ctx).await {
+   let author_guilds = if let Some(guild) = maybe_guild_id.and_then(|id| block_on(id.to_guild_cached(&ctx))) {
+      vec![guild]
+   } else if let Ok(guilds) = bot.guilds(ctx).await {
       guilds
          .iter()
          .map(|guild_id| ctx.cache.guild(guild_id))
@@ -44,7 +37,10 @@ pub async fn list(ctx: &Context, author: &User) -> String {
       Vec::new()
    };
 
-   let mut content = "Your commands per server:\n__**Servers**__\n".to_owned();
+   let mut content: String = String::new();
+   if author_guilds.len() > 1 {
+      content.push_str("Your commands per server:\n__**Servers**__\n");
+   }
 
    author_guilds.iter().for_each(|guild| {
       // TODO: platform agnostic paths
@@ -85,13 +81,5 @@ pub async fn list(ctx: &Context, author: &User) -> String {
       }
    });
 
-   return content;
-}
-
-pub async fn dm_not_found(ctx: &Context, msg: &Message, name: &str) {
-   log_on_error(
-      msg.author
-         .direct_message(ctx, |m| m.content(format!("Cannot find audio file for {}", name))),
-   )
-   .await;
+   content
 }
