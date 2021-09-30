@@ -1,7 +1,9 @@
+use crate::playback::CallResult;
 use log::error;
 
-pub fn log_on_error<T>(result: serenity::Result<T>) {
-   if let Err(why) = result {
-      error!("Failed discord call: {:?}", why)
+pub fn log_error_if_any(result: CallResult) -> CallResult {
+   if let Some(ref err) = result.underlying_error {
+      error!("Unexpected error occured during call: {}", err);
    }
+   result
 }

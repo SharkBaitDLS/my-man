@@ -1,6 +1,6 @@
 [package]
 name = "my_man"
-version = "0.1.2"
+version = "0.3.0"
 authors = ["Isaac M. Good <imgood@imgoodproductions.org>"]
 edition = "2018"
 
@@ -10,7 +10,23 @@ edition = "2018"
 env_logger = "*"
 log = "*"
 metrics = "*"
+futures = "*"
+async-trait = "*"
+songbird = "0.2"
+
+[dependencies.tokio]
+version = "*"
+features = ["macros", "rt-multi-thread"]
 
 [dependencies.serenity]
-version = "0.8"
-features = ["cache", "framework", "standard_framework", "voice", "http", "rustls_backend"]
+version = "0.10"
+features = [
+   "cache",
+   "client",
+   "framework",
+   "standard_framework",
+   "unstable_discord_api",
+   "voice",
+   "http",
+   "rustls_backend"
+]
