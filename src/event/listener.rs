@@ -4,7 +4,7 @@ use crate::event::util::{move_if_last_user, moved_to_non_afk};
 use crate::playback;
 use crate::util;
 use async_trait::async_trait;
-use log::{debug, error, info};
+use log::{error, info};
 use serenity::{
    client::{Context, EventHandler},
    model::{
@@ -84,11 +84,10 @@ impl EventHandler for SoundboardListener {
    ) {
       match new.channel_id {
          Some(channel_id) if moved_to_non_afk(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) => {
-            debug!(
-               "{}",
+            let msg =
                util::log_error_if_any(playback::play_entrance(ctx, guild_id.unwrap(), channel_id, new.user_id).await)
-                  .user_message
-            );
+                  .user_message;
+            info!("{}", msg);
          }
          _ => move_if_last_user(ctx, guild_id).await,
       }
