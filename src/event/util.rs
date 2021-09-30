@@ -4,7 +4,10 @@ use futures::executor::block_on;
 use log::{error, warn};
 use serenity::{
    client::Context,
-   model::{id::ChannelId, id::GuildId, id::UserId, voice::VoiceState},
+   model::{
+      id::{ChannelId, GuildId, UserId},
+      voice::VoiceState,
+   },
 };
 use std::collections::hash_map::{HashMap, Values};
 

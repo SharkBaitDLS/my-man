@@ -1,4 +1,5 @@
 use crate::audio::audio_source;
+use crate::call_result::CallResult;
 use futures::stream::{FuturesOrdered, StreamExt};
 use log::error;
 use serenity::{
@@ -15,8 +16,7 @@ use songbird::{
    input::{error::Error, Input},
    Call, Songbird,
 };
-use std::io::ErrorKind;
-use std::sync::Arc;
+use std::{io::ErrorKind, sync::Arc};
 use tokio::sync::MutexGuard;
 
 pub async fn get_manager(ctx: &Context) -> Arc<Songbird> {
@@ -28,27 +28,6 @@ pub async fn get_manager(ctx: &Context) -> Arc<Songbird> {
 pub struct ConnectionData {
    pub guild: GuildId,
    pub channel: ChannelId,
-}
-
-pub struct CallResult {
-   pub user_message: String,
-   pub underlying_error: Option<String>,
-}
-
-impl CallResult {
-   pub fn success<T: ToString>(user_message: T) -> Self {
-      Self {
-         user_message: user_message.to_string(),
-         underlying_error: None,
-      }
-   }
-
-   pub fn failure<T: ToString, U: ToString>(user_message: T, underlying_error: U) -> Self {
-      Self {
-         user_message: user_message.to_string(),
-         underlying_error: Some(underlying_error.to_string()),
-      }
-   }
 }
 
 pub async fn get_connection_data_for_command(

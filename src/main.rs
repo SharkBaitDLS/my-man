@@ -1,11 +1,14 @@
 mod audio;
+mod call_result;
 mod chat;
 mod event;
-mod util;
 
 use audio::playback;
 use log::error;
-use serenity::{client::bridge::gateway::GatewayIntents, client::Client, framework::StandardFramework};
+use serenity::{
+   client::{bridge::gateway::GatewayIntents, Client},
+   framework::StandardFramework,
+};
 use songbird::SerenityInit;
 use std::env;
 

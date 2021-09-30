@@ -1,6 +1,6 @@
 [package]
 name = "my_man"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Isaac M. Good <imgood@imgoodproductions.org>"]
 edition = "2018"
 
@@ -21,12 +21,8 @@ features = ["macros", "rt-multi-thread"]
 [dependencies.serenity]
 version = "0.10"
 features = [
-   "cache",
-   "client",
-   "framework",
-   "standard_framework",
+   "cache", 
    "unstable_discord_api",
    "voice",
-   "http",
    "rustls_backend"
 ]
