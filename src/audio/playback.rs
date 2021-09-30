@@ -109,17 +109,6 @@ async fn play_source(mut call: MutexGuard<'_, Call>, source: Input, volume: f32)
    call.play(track);
 }
 
-pub async fn join_and_play(
-   ctx: &Context, guild_id: GuildId, channel_id: ChannelId, source: Input, volume: f32,
-) -> Result<(), JoinError> {
-   let connection = ConnectionData {
-      guild: guild_id,
-      channel: channel_id,
-   };
-
-   join_connection_and_play(ctx, connection, source, volume).await
-}
-
 pub async fn stop(ctx: &Context, connect_to: ConnectionData) -> CallResult {
    let manager = get_manager(ctx).await;
 
@@ -171,16 +160,17 @@ pub async fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelI
    match user_id.to_user(&ctx).await {
       Ok(user) => match user {
          User { bot: true, .. } => CallResult::success(format!("A bot joined a channel: {}", user.name)),
-         _ => match audio_source::file(&user.name, &guild_id).await {
-            Ok(source) => match join_and_play(&ctx, guild_id, channel_id, source, 1.0).await {
-               Ok(_) => CallResult::success(format!("Playing {}", &user.name)),
-               Err(err) => CallResult::failure(format!("Failed to load file for {}", &user.name), err),
-            },
-            Err(Error::Io(err)) if err.kind() == ErrorKind::NotFound => {
-               CallResult::success(format!("Audio file not found for {}", &user.name))
-            }
-            Err(err) => CallResult::failure(format!("Failed to load file for {}", &user.name), err),
-         },
+         _ => {
+            play_file(
+               &ctx,
+               &user.name,
+               ConnectionData {
+                  guild: guild_id,
+                  channel: channel_id,
+               },
+            )
+            .await
+         }
       },
       Err(err) => CallResult::failure("Could not get user name", err),
    }
