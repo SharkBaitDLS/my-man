@@ -23,12 +23,7 @@ async fn main() {
       .application_id(application_id)
       .event_handler(event::listener::SoundboardListener)
       .framework(StandardFramework::new())
-      .intents(
-         GatewayIntents::GUILDS
-            | GatewayIntents::GUILD_MESSAGES
-            | GatewayIntents::GUILD_VOICE_STATES
-            | GatewayIntents::DIRECT_MESSAGES,
-      )
+      .intents(GatewayIntents::GUILDS | GatewayIntents::GUILD_VOICE_STATES)
       .register_songbird()
       .await
       .expect("Err creating client");
