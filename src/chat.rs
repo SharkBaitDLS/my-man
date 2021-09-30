@@ -73,12 +73,10 @@ pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User)
       if file_names.is_empty() {
          content.push_str(&format!("**{}**\nNo clips available.\n", guild.name));
       } else {
-         let list_message = file_names
-            .into_sorted_vec()
-            .into_iter()
-            .fold(format!("**{}**\nClips available:\n```\n", guild.name), |accum, path| {
-               accum + "/play " + &path + "\n"
-            });
+         let list_message = file_names.into_sorted_vec().into_iter().fold(
+            format!("**{}**\nClips available for /play:\n```\n", guild.name),
+            |accum, path| accum + &path + "\n",
+         );
          content.push_str(&(list_message + "```\n"));
       }
    });
