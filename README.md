@@ -11,6 +11,7 @@ Note: this depends on [serenity-rs](https://github.com/serenity-rs/serenity) whi
 #### Execution
 Run the binary with the following environment variables set:
 * `DISCORD_TOKEN`: your bot token from Discord
+* `APPLICATION_ID`: your bot application id
 * `AUDIO_FILE_DIR`: the local directory path to read MP3 files from
 
 ### Usage
