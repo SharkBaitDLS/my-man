@@ -1,6 +1,4 @@
-use crate::audio::audio_source;
-use crate::audio::connection_data;
-use crate::audio::playback;
+use crate::audio::{audio_source, connection_data::ConnectionData, playback};
 use crate::call_result;
 use log::error;
 use serenity::{
@@ -11,7 +9,7 @@ use serenity::{
 };
 
 pub async fn play(ctx: &Context, command: &ApplicationCommandInteraction) -> String {
-   if let Some(connection) = connection_data::get_connection_data_for_command(ctx, command).await {
+   if let Some(connection) = ConnectionData::try_from_command(ctx, command).await {
       let option = command
          .data
          .options
@@ -32,7 +30,7 @@ pub async fn play(ctx: &Context, command: &ApplicationCommandInteraction) -> Str
 }
 
 pub async fn stop(ctx: &Context, command: &ApplicationCommandInteraction) -> String {
-   if let Some(connection) = connection_data::get_connection_data_for_command(ctx, command).await {
+   if let Some(connection) = ConnectionData::try_from_command(ctx, command).await {
       call_result::log_error_if_any(playback::stop(ctx, connection).await).user_message
    } else {
       "You are not in a guild with the bot!".to_string()
@@ -41,7 +39,7 @@ pub async fn stop(ctx: &Context, command: &ApplicationCommandInteraction) -> Str
 
 pub async fn summon(ctx: &Context, command: &ApplicationCommandInteraction) -> String {
    let msg: String;
-   if let Some(connection) = connection_data::get_connection_data_for_command(ctx, command).await {
+   if let Some(connection) = ConnectionData::try_from_command(ctx, command).await {
       if let Ok(source) = audio_source::file("myman", &connection.guild).await {
          if let Err(err) = playback::join_connection_and_play(ctx, connection, source, 1.0).await {
             msg = "Bot failed to join your channel".to_string();
@@ -62,7 +60,7 @@ pub async fn summon(ctx: &Context, command: &ApplicationCommandInteraction) -> S
 }
 
 pub async fn youtube(ctx: &Context, command: &ApplicationCommandInteraction) -> String {
-   if let Some(connection) = connection_data::get_connection_data_for_command(ctx, command).await {
+   if let Some(connection) = ConnectionData::try_from_command(ctx, command).await {
       let option = command
          .data
          .options
