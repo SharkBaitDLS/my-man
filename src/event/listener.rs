@@ -18,7 +18,6 @@ use serenity::{
    },
    utils::Colour,
 };
-use tokio::time::{sleep, Duration};
 
 pub struct SoundboardListener;
 
@@ -130,19 +129,13 @@ impl EventHandler for SoundboardListener {
                response.create_embed(|embed| {
                   embed
                      .colour(Colour::FABLED_PINK)
-                     .title(format!("You used /{}", command.data.name))
+                     .title(format!("/{} result", command.data.name))
                      .description(result)
-                     .footer(|footer| footer.text("This message will automatically dismiss in 1 minute"))
                })
             })
             .await;
          if let Err(msg) = edit_response {
             error!("Could not respond to command: {:?}", msg);
-         }
-
-         sleep(Duration::from_secs(60)).await;
-         if let Err(msg) = command.delete_original_interaction_response(&ctx).await {
-            error!("Could not delete response: {:?}", msg);
          }
       }
    }
