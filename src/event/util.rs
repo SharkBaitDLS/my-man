@@ -1,5 +1,4 @@
-use crate::audio::{audio_source, playback};
-use crate::playback::ConnectionData;
+use crate::audio::{audio_source, connection_data::ConnectionData, playback};
 use futures::executor::block_on;
 use log::{error, warn};
 use serenity::{

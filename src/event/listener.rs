@@ -1,8 +1,8 @@
-use crate::audio::audio_source;
+use crate::actions;
+use crate::audio::playback;
 use crate::call_result;
 use crate::chat;
 use crate::event::util::{move_if_last_user, moved_to_non_afk};
-use crate::playback;
 use async_trait::async_trait;
 use log::{error, info};
 use serenity::{
@@ -11,9 +11,7 @@ use serenity::{
       gateway::{Activity, Ready},
       id::GuildId,
       interactions::{
-         application_command::{
-            ApplicationCommand, ApplicationCommandInteractionDataOptionValue, ApplicationCommandOptionType,
-         },
+         application_command::{ApplicationCommand, ApplicationCommandOptionType},
          Interaction, InteractionApplicationCommandCallbackDataFlags, InteractionResponseType,
       },
       voice::VoiceState,
@@ -94,7 +92,6 @@ impl EventHandler for SoundboardListener {
       }
    }
 
-   // TODO: break out logic into "actions" module
    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
       if let Interaction::ApplicationCommand(command) = interaction {
          // create an initial placeholder result that shows the bot as "thinking"
@@ -103,6 +100,8 @@ impl EventHandler for SoundboardListener {
                response
                   .kind(InteractionResponseType::DeferredChannelMessageWithSource)
                   .interaction_response_data(|message| {
+                     // Ephemeral means that only the user who issued the command sees the response
+                     // and can dismiss it at their leisure
                      message.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
                   })
             })
@@ -114,79 +113,16 @@ impl EventHandler for SoundboardListener {
          }
 
          let result = match command.data.name.as_str() {
-            "play" => {
-               if let Some(connection) = playback::get_connection_data_for_command(&ctx, &command).await {
-                  let option = command
-                     .data
-                     .options
-                     .get(0)
-                     .expect("Expected name option")
-                     .resolved
-                     .as_ref()
-                     .expect("Expected a value to be passed");
-
-                  if let ApplicationCommandInteractionDataOptionValue::String(name) = option {
-                     call_result::log_error_if_any(playback::play_file(&ctx, name, connection).await).user_message
-                  } else {
-                     "Cannot parse file name".to_string()
-                  }
-               } else {
-                  "You are not in a voice channel!".to_string()
-               }
-            }
-            "youtube" => {
-               if let Some(connection) = playback::get_connection_data_for_command(&ctx, &command).await {
-                  let option = command
-                     .data
-                     .options
-                     .get(0)
-                     .expect("Expected URL option")
-                     .resolved
-                     .as_ref()
-                     .expect("Expected a value to be passed");
-
-                  if let ApplicationCommandInteractionDataOptionValue::String(url) = option {
-                     call_result::log_error_if_any(playback::play_youtube(&ctx, url, connection).await).user_message
-                  } else {
-                     "Cannot parse YouTube URL".to_string()
-                  }
-               } else {
-                  "You are not in a voice channel!".to_string()
-               }
-            }
+            "play" => actions::play(&ctx, &command).await,
+            "youtube" => actions::youtube(&ctx, &command).await,
             "help" => HELP_MSG.to_string(),
             "list" => chat::list(&ctx, command.guild_id, &command.user).await,
-            "stop" => {
-               if let Some(connection) = playback::get_connection_data_for_command(&ctx, &command).await {
-                  call_result::log_error_if_any(playback::stop(&ctx, connection).await).user_message
-               } else {
-                  "You are not in a guild with the bot!".to_string()
-               }
-            }
-            "summon" => {
-               let msg: String;
-               if let Some(connection) = playback::get_connection_data_for_command(&ctx, &command).await {
-                  if let Ok(source) = audio_source::file("myman", &connection.guild).await {
-                     if let Err(err) = playback::join_connection_and_play(&ctx, connection, source, 1.0).await {
-                        msg = "Bot failed to join your channel".to_string();
-                        error!("Failed to join summon: {}", err);
-                     } else {
-                        msg = "Bot summoned".to_string();
-                     }
-                  } else if let Err(err) = playback::join_connection(&ctx, connection).await {
-                     msg = "Bot failed to join your channel".to_string();
-                     error!("Failed to join summon: {}", err);
-                  } else {
-                     msg = "Bot summoned".to_string();
-                  }
-                  msg
-               } else {
-                  "You are not in a voice channel!".to_string()
-               }
-            }
+            "stop" => actions::stop(&ctx, &command).await,
+            "summon" => actions::summon(&ctx, &command).await,
             &_ => "Unrecognized command!".to_string(),
          };
 
+         // update the response with the actual result of the action
          let edit_response = command
             .edit_original_interaction_response(&ctx, |response| response.content(result))
             .await;

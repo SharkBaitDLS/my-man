@@ -1,9 +1,9 @@
+mod actions;
 mod audio;
 mod call_result;
 mod chat;
 mod event;
 
-use audio::playback;
 use log::error;
 use serenity::{
    client::{bridge::gateway::GatewayIntents, Client},

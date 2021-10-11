@@ -9,7 +9,7 @@ use serenity::{
 };
 use std::{collections::BinaryHeap, env, fs::read_dir};
 
-// TODO: handle Discord's 2000 character limit on messages gracefully
+// TODO: replace with web UI link (and build the web UI XD) due to Discord's 2000 character limit
 pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User) -> String {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
    let bot = ctx.cache.current_user().await;
