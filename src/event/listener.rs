@@ -16,7 +16,9 @@ use serenity::{
       },
       voice::VoiceState,
    },
+   utils::Colour,
 };
+use tokio::time::{sleep, Duration};
 
 pub struct SoundboardListener;
 
@@ -124,10 +126,23 @@ impl EventHandler for SoundboardListener {
 
          // update the response with the actual result of the action
          let edit_response = command
-            .edit_original_interaction_response(&ctx, |response| response.content(result))
+            .edit_original_interaction_response(&ctx, |response| {
+               response.create_embed(|embed| {
+                  embed
+                     .colour(Colour::FABLED_PINK)
+                     .title(format!("You used /{}", command.data.name))
+                     .description(result)
+                     .footer(|footer| footer.text("This message will automatically dismiss in 1 minute"))
+               })
+            })
             .await;
          if let Err(msg) = edit_response {
             error!("Could not respond to command: {:?}", msg);
+         }
+
+         sleep(Duration::from_secs(60)).await;
+         if let Err(msg) = command.delete_original_interaction_response(&ctx).await {
+            error!("Could not delete response: {:?}", msg);
          }
       }
    }
