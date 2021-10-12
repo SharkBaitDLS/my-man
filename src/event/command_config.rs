@@ -12,7 +12,18 @@ pub struct CommandOption<'a> {
    pub required: bool,
 }
 
-#[derive(Clone, Debug)]
+impl Default for CommandOption<'_> {
+   fn default() -> Self {
+      Self {
+         name: Default::default(),
+         description: Default::default(),
+         kind: ApplicationCommandOptionType::String,
+         required: false,
+      }
+   }
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct CommandConfig<'a> {
    pub name: &'a str,
    pub description: &'a str,

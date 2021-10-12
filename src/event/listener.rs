@@ -43,12 +43,12 @@ impl EventHandler for SoundboardListener {
          CommandConfig {
             name: "help",
             description: "Display help information",
-            options: Vec::new(),
+            ..Default::default()
          },
          CommandConfig {
             name: "list",
             description: "List available sound files",
-            options: Vec::new(),
+            ..Default::default()
          },
          CommandConfig {
             name: "play",
@@ -73,12 +73,12 @@ impl EventHandler for SoundboardListener {
          CommandConfig {
             name: "summon",
             description: "Summon the bot to your voice channel",
-            options: Vec::new(),
+            ..Default::default()
          },
          CommandConfig {
             name: "stop",
             description: "Stop the bot audio playback",
-            options: Vec::new(),
+            ..Default::default()
          },
       ];
 
