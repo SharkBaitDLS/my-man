@@ -13,6 +13,8 @@ metrics = "*"
 futures = "*"
 async-trait = "*"
 songbird = "0.2"
+mockall = "*"
+tempfile = "*"
 
 [dependencies.tokio]
 version = "*"
