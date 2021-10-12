@@ -1,4 +1,12 @@
-use crate::{actions, audio::playback, call_result, chat, event::util};
+use crate::{
+   actions,
+   audio::playback,
+   call_result, chat,
+   event::{
+      command_config::{CommandConfig, CommandOption},
+      util,
+   },
+};
 use log::{error, info};
 use serenity::{
    client::{Context, EventHandler},
@@ -31,45 +39,58 @@ impl EventHandler for SoundboardListener {
       info!("{} is connected!", ready.user.name);
       ctx.set_activity(Activity::listening("commands: /help")).await;
 
-      let commands = ApplicationCommand::set_global_application_commands(&ctx, |commands| {
-         commands
-            .create_application_command(|command| command.name("help").description("Display help information"))
-            .create_application_command(|command| command.name("list").description("List available sound files"))
-            .create_application_command(|command| {
-               command
-                  .name("play")
-                  .description("Play a sound file from the available library")
-                  .create_option(|option| {
-                     option
-                        .name("name")
-                        .description("the name of the sound file")
-                        .kind(ApplicationCommandOptionType::String)
-                        .required(true)
-                  })
-            })
-            .create_application_command(|command| {
-               command
-                  .name("youtube")
-                  .description("Play audio from a youtube video")
-                  .create_option(|option| {
-                     option
-                        .name("url")
-                        .description("the youtube URL")
-                        .kind(ApplicationCommandOptionType::String)
-                        .required(true)
-                  })
-            })
-            .create_application_command(|command| {
-               command
-                  .name("summon")
-                  .description("Summon the bot to your voice channel")
-            })
-            .create_application_command(|command| command.name("stop").description("Stop the bot audio playback"))
-      })
-      .await;
+      let commands: Vec<CommandConfig> = vec![
+         CommandConfig {
+            name: "help",
+            description: "Display help information",
+            options: Vec::new(),
+         },
+         CommandConfig {
+            name: "list",
+            description: "List available sound files",
+            options: Vec::new(),
+         },
+         CommandConfig {
+            name: "play",
+            description: "Play a sound file from the available library",
+            options: vec![CommandOption {
+               name: "name",
+               description: "the name of the sound file",
+               kind: ApplicationCommandOptionType::String,
+               required: true,
+            }],
+         },
+         CommandConfig {
+            name: "youtube",
+            description: "Play audio from a youtube video",
+            options: vec![CommandOption {
+               name: "url",
+               description: "the YouTube URL",
+               kind: ApplicationCommandOptionType::String,
+               required: true,
+            }],
+         },
+         CommandConfig {
+            name: "summon",
+            description: "Summon the bot to your voice channel",
+            options: Vec::new(),
+         },
+         CommandConfig {
+            name: "stop",
+            description: "Stop the bot audio playback",
+            options: Vec::new(),
+         },
+      ];
 
-      if let Err(msg) = commands {
-         error!("Could not register commands: {:?}", msg);
+      if let Ok(current_commands) = ApplicationCommand::get_global_application_commands(&ctx).await {
+         for config in commands {
+            match current_commands.iter().find(|command| command.name == config.name) {
+               Some(command) if !config.is_equivalent(command) => (),
+               _ => config.register_command(&ctx).await,
+            }
+         }
+      } else {
+         error!("Could not load current commands from Discord, no changes will be made");
       }
    }
 
