@@ -7,7 +7,7 @@ use serenity::{
    client::Context,
    model::{id::GuildId, user::User},
 };
-use std::{collections::BinaryHeap, env, fs::read_dir};
+use std::{collections::BinaryHeap, env, fs};
 
 // TODO: replace with web UI link (and build the web UI XD) due to Discord's 2000 character limit
 pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User) -> String {
@@ -48,7 +48,7 @@ pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User)
       // TODO: handle directory traversal attacks
       let guild_dir = String::from(&file_dir) + "/" + &guild.id.as_u64().to_string();
 
-      let file_names = read_dir(guild_dir)
+      let file_names = fs::read_dir(guild_dir)
          .map(|entries| {
             entries
                .filter_map(|maybe_entry| {

@@ -1,9 +1,4 @@
-use crate::actions;
-use crate::audio::playback;
-use crate::call_result;
-use crate::chat;
-use crate::event::util::{move_if_last_user, moved_to_non_afk};
-use async_trait::async_trait;
+use crate::{actions, audio::playback, call_result, chat, event::util};
 use log::{error, info};
 use serenity::{
    client::{Context, EventHandler},
@@ -30,7 +25,7 @@ static HELP_MSG: &str = "You can type any of the following commands:
 /summon  - Summon the bot to your current voice channel.
 ```";
 
-#[async_trait]
+#[async_trait::async_trait]
 impl EventHandler for SoundboardListener {
    async fn ready(&self, ctx: Context, ready: Ready) {
       info!("{} is connected!", ready.user.name);
@@ -82,14 +77,16 @@ impl EventHandler for SoundboardListener {
       &self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState,
    ) {
       match new.channel_id {
-         Some(channel_id) if moved_to_non_afk(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) => {
+         Some(channel_id)
+            if util::moved_to_non_afk(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) =>
+         {
             let msg = call_result::log_error_if_any(
                playback::play_entrance(ctx, guild_id.unwrap(), channel_id, new.user_id).await,
             )
             .user_message;
             info!("{}", msg);
          }
-         _ => move_if_last_user(ctx, guild_id).await,
+         _ => util::move_if_last_user(ctx, guild_id).await,
       }
    }
 

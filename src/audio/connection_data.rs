@@ -1,10 +1,12 @@
 use futures::{stream::FuturesOrdered, StreamExt};
 use log::error;
-use serenity::client::Context;
-use serenity::model::{
-   id::{ChannelId, GuildId},
-   interactions::application_command::ApplicationCommandInteraction,
-   user::User,
+use serenity::{
+   client::Context,
+   model::{
+      id::{ChannelId, GuildId},
+      interactions::application_command::ApplicationCommandInteraction,
+      user::User,
+   },
 };
 
 pub struct ConnectionData {

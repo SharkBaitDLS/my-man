@@ -1,5 +1,7 @@
-use crate::audio::{audio_source, connection_data::ConnectionData, playback};
-use crate::call_result;
+use crate::{
+   audio::{audio_source, connection_data::ConnectionData, playback},
+   call_result,
+};
 use log::error;
 use serenity::{
    client::Context,

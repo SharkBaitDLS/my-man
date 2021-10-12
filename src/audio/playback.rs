@@ -1,13 +1,16 @@
-use crate::audio::audio_source;
-use crate::audio::connection_data::ConnectionData;
-use crate::call_result::CallResult;
+use crate::{
+   audio::{audio_source, connection_data::ConnectionData},
+   call_result::CallResult,
+};
 use serenity::{
    client::Context,
-   model::{id::ChannelId, id::GuildId, id::UserId, user::User},
+   model::{
+      id::{ChannelId, GuildId, UserId},
+      user::User,
+   },
    prelude::Mutex,
 };
 use songbird::{
-   create_player,
    error::JoinError,
    input::{error::Error, Input},
    Call, Songbird,
@@ -22,7 +25,7 @@ pub async fn get_manager(ctx: &Context) -> Arc<Songbird> {
 }
 
 async fn play_source(mut call: MutexGuard<'_, Call>, source: Input, volume: f32) {
-   let (mut track, _) = create_player(source);
+   let (mut track, _) = songbird::create_player(source);
    track.set_volume(volume);
    call.play(track);
 }

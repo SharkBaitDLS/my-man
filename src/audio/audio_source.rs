@@ -1,13 +1,15 @@
 use serenity::model::id::GuildId;
-use songbird::ffmpeg;
 use songbird::input::{error::Error, Input};
-use std::io::ErrorKind;
-use std::path::{Component, PathBuf};
-use std::{env, fs::File};
+use std::{
+   env,
+   fs::File,
+   io::ErrorKind,
+   path::{Component, PathBuf},
+};
 
 pub async fn file(name: &str, guild_id: &GuildId) -> Result<Input, Error> {
    match get_path(name, guild_id).await {
-      Ok(path) => ffmpeg(path).await,
+      Ok(path) => songbird::ffmpeg(path).await,
       Err(err) => Err(Error::Io(err)),
    }
 }
@@ -34,13 +36,12 @@ async fn get_path(name: &str, guild_id: &GuildId) -> Result<PathBuf, std::io::Er
 
 #[cfg(test)]
 mod tests {
+   use super::*;
+   use futures::executor::block_on;
    use std::{
       fs,
       io::{ErrorKind, Read, Write},
    };
-
-   use super::*;
-   use futures::executor::block_on;
    use tempfile::{tempdir, TempDir};
 
    #[test]

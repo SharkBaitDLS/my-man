@@ -1,5 +1,5 @@
 use crate::audio::{audio_source, connection_data::ConnectionData, playback};
-use futures::executor::block_on;
+use futures::executor;
 use log::{error, warn};
 use serenity::{
    client::Context,
@@ -11,7 +11,7 @@ use serenity::{
 use std::collections::hash_map::{HashMap, Values};
 
 fn is_afk_channel(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bool {
-   block_on(async {
+   executor::block_on(async {
       guild_id
          .to_guild_cached(&ctx.cache)
          .await
@@ -21,7 +21,7 @@ fn is_afk_channel(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bo
 }
 
 fn all_afk_states(ctx: &Context, guild_id: GuildId, states: Values<'_, UserId, VoiceState>) -> bool {
-   let current_user_id = block_on(ctx.cache.current_user()).id;
+   let current_user_id = executor::block_on(ctx.cache.current_user()).id;
    states
       .filter(|state| state.user_id != current_user_id)
       .all(|state| state.channel_id.map_or(true, |id| is_afk_channel(ctx, guild_id, id)))
@@ -29,7 +29,7 @@ fn all_afk_states(ctx: &Context, guild_id: GuildId, states: Values<'_, UserId, V
 
 fn only_user_in_channel(ctx: &Context, states: &HashMap<UserId, VoiceState>) -> bool {
    let my_channel_id = states
-      .get(&block_on(ctx.cache.current_user()).id)
+      .get(&executor::block_on(ctx.cache.current_user()).id)
       .and_then(|user| user.channel_id);
 
    1 == states
@@ -49,7 +49,7 @@ pub fn moved_to_non_afk(ctx: &Context, guild_id: GuildId, channel_id: ChannelId,
 pub async fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
    let current_user_id = ctx.cache.current_user().await.id;
    match guild_id
-      .and_then(|id| block_on(id.to_guild_cached(&ctx.cache)))
+      .and_then(|id| executor::block_on(id.to_guild_cached(&ctx.cache)))
       .map(|guild| guild.voice_states)
    {
       // if the bot is the only one left in voice, disconnect from voice
