@@ -27,12 +27,15 @@ pub async fn create_admin_roles(ctx: &Context) {
          if admin_role_data.is_empty() {
             admin_role_id = None;
          } else {
-            admin_role_id = admin_role_data.parse::<u64>().ok();
+            admin_role_id = admin_role_data
+               .parse::<u64>()
+               .map_err(|err| error!("Could not parse .role_id for {:?}: {:?}", guild.id, err))
+               .ok()
          }
       }
 
       if admin_role_id.is_none()
-         || guild
+         || !guild
             .id
             .roles(&ctx)
             .await
