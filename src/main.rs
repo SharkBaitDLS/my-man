@@ -4,6 +4,8 @@ mod call_result;
 mod chat;
 mod commands;
 mod event;
+mod guilds;
+mod role;
 
 use log::error;
 use serenity::{

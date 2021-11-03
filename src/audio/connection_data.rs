@@ -1,5 +1,3 @@
-use futures::{stream::FuturesOrdered, StreamExt};
-use log::error;
 use serenity::{
    client::Context,
    model::{
@@ -8,6 +6,8 @@ use serenity::{
       user::User,
    },
 };
+
+use crate::guilds;
 
 pub struct ConnectionData {
    pub guild: GuildId,
@@ -36,24 +36,7 @@ impl ConnectionData {
    }
 
    async fn try_from_user(ctx: &Context, user: &User) -> Option<Self> {
-      let possible_guilds = ctx
-         .cache
-         .current_user()
-         .await
-         .guilds(&ctx.http)
-         .await
-         .unwrap_or_else(|err| {
-            error!("Error retrieving this bot's guilds: {}", &err);
-            Vec::new()
-         })
-         .into_iter()
-         .map(|info| info.id.to_guild_cached(&ctx.cache))
-         .collect::<FuturesOrdered<_>>()
-         .filter_map(|guild| async { guild })
-         .collect::<Vec<_>>()
-         .await;
-
-      possible_guilds.into_iter().find_map(|guild| {
+      guilds::get_bot_guilds_cached(ctx).await.into_iter().find_map(|guild| {
          guild
             .voice_states
             .get(&user.id)

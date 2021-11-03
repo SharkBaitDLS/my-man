@@ -1,4 +1,3 @@
-use crate::{actions, audio::playback, call_result, chat, commands, event::util};
 use log::{error, info};
 use serenity::{
    client::{Context, EventHandler},
@@ -10,6 +9,8 @@ use serenity::{
    },
    utils::Colour,
 };
+
+use crate::{actions, audio::playback, call_result, chat, commands, event::util, role};
 
 pub struct SoundboardListener;
 
@@ -28,6 +29,7 @@ impl EventHandler for SoundboardListener {
       info!("{} is connected!", ready.user.name);
       ctx.set_activity(Activity::listening("commands: /help")).await;
       commands::create_or_update(&ctx).await;
+      role::create_admin_roles(&ctx).await;
    }
 
    async fn voice_state_update(
@@ -74,7 +76,7 @@ impl EventHandler for SoundboardListener {
             "list" => chat::list(&ctx, command.guild_id, &command.user).await,
             "stop" => actions::stop(&ctx, &command).await,
             "summon" => actions::summon(&ctx, &command).await,
-            &_ => "Unrecognized command!".to_string(),
+            _ => "Unrecognized command!".to_string(),
          };
 
          // update the response with the actual result of the action
