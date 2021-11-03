@@ -1,5 +1,5 @@
 use log::error;
-use serenity::client::Context;
+use serenity::{client::Context, utils::Colour};
 use std::{
    env,
    fs::File,
@@ -44,7 +44,13 @@ pub async fn create_admin_roles(ctx: &Context) {
             .any(|role_id| role_id == admin_role_id.unwrap())
       {
          match File::create(&path) {
-            Ok(mut file) => match guild.id.create_role(&ctx, |role| role.name("Sound Clip Admin")).await {
+            Ok(mut file) => match guild
+               .id
+               .create_role(&ctx, |role| {
+                  role.name("Sound Clip Admin").colour(Colour::BLITZ_BLUE.0.into())
+               })
+               .await
+            {
                Ok(role) => {
                   if let Err(err) = file.write_all(role.id.to_string().as_bytes()) {
                      error!(
