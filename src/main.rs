@@ -2,6 +2,7 @@ mod actions;
 mod audio;
 mod call_result;
 mod chat;
+mod commands;
 mod event;
 
 use log::error;
