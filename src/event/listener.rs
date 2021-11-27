@@ -18,7 +18,7 @@ static HELP_MSG: &str = "You can type any of the following commands:
 ```
 /list    - Returns a list of available sound files.
 /play    - Plays the specified sound from the list.
-/yt      - Plays the youtube link specified.
+/youtube - Plays the youtube link specified.
 /stop    - Stops the currently playing sound(s).
 /summon  - Summon the bot to your current voice channel.
 ```";
