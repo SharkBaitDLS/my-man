@@ -10,7 +10,7 @@ use std::{
 use crate::guilds;
 
 pub async fn create_admin_roles(ctx: &Context) {
-   for guild in guilds::get_bot_guild_infos(ctx).await {
+   for guild in guilds::get_bot_guild_infos(&ctx.cache, &ctx.http).await {
       let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
       let path: PathBuf = [file_dir, guild.id.as_u64().to_string(), ".role_id".to_string()]
          .iter()

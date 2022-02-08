@@ -5,17 +5,26 @@ mod chat;
 mod commands;
 mod event;
 mod guilds;
+mod http;
 mod role;
 
 use log::error;
+use rocket::routes;
 use serenity::{
-   client::{bridge::gateway::GatewayIntents, Client},
+   client::{bridge::gateway::GatewayIntents, Cache, Client},
    framework::StandardFramework,
+   http::Http,
 };
-use songbird::SerenityInit;
-use std::env;
+use songbird::{SerenityInit, Songbird, SongbirdKey};
+use std::{env, sync::Arc};
 
-#[tokio::main]
+pub struct WebContext {
+   pub cache: Arc<Cache>,
+   pub http: Arc<Http>,
+   pub songbird: Arc<Songbird>,
+}
+
+#[rocket::main]
 async fn main() {
    env_logger::init();
 
@@ -34,7 +43,24 @@ async fn main() {
       .await
       .expect("Err creating client");
 
-   if let Err(why) = client.start().await {
-      error!("Client ended: {:?}", why)
-   };
+   let rocket = rocket::build().mount("/", routes![http::play]).manage(WebContext {
+      cache: client.cache_and_http.cache.clone(),
+      http: client.cache_and_http.http.clone(),
+      songbird: client
+         .data
+         .read()
+         .await
+         .get::<SongbirdKey>()
+         .cloned()
+         .expect("Songbird should be registered!"),
+   });
+
+   tokio::spawn(async move {
+      if let Err(err) = client.start().await {
+         error!("Client ended: {:?}", err)
+      }
+   });
+   if let Err(err) = rocket.launch().await {
+      error!("Webserver ended: {:?}", err)
+   }
 }

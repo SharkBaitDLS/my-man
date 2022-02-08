@@ -48,9 +48,9 @@ pub async fn stop(ctx: &Context, connect_to: ConnectionData) -> CallResult {
    )
 }
 
-pub async fn join_connection(ctx: &Context, connect_to: ConnectionData) -> Result<Arc<Mutex<Call>>, JoinError> {
-   let manager = get_manager(ctx).await;
-
+async fn join_connection_with_manager(
+   manager: Arc<Songbird>, connect_to: ConnectionData,
+) -> Result<Arc<Mutex<Call>>, JoinError> {
    let call = manager.get_or_insert(connect_to.guild.into());
    let current_channel_id = { call.lock().await.current_channel() };
 
@@ -65,16 +65,28 @@ pub async fn join_connection(ctx: &Context, connect_to: ConnectionData) -> Resul
    }
 }
 
-pub async fn join_connection_and_play(
-   ctx: &Context, connect_to: ConnectionData, source: Input, volume: f32,
+pub async fn join_connection(ctx: &Context, connect_to: ConnectionData) -> Result<Arc<Mutex<Call>>, JoinError> {
+   let manager = get_manager(ctx).await;
+
+   join_connection_with_manager(manager, connect_to).await
+}
+
+async fn join_connection_with_manager_and_play(
+   manager: Arc<Songbird>, connect_to: ConnectionData, source: Input, volume: f32,
 ) -> Result<(), JoinError> {
-   match join_connection(ctx, connect_to).await {
+   match join_connection_with_manager(manager, connect_to).await {
       Ok(call) => {
          play_source(call.lock().await, source, volume).await;
          Ok(())
       }
       Err(err) => Err(err),
    }
+}
+
+pub async fn join_connection_and_play(
+   ctx: &Context, connect_to: ConnectionData, source: Input, volume: f32,
+) -> Result<(), JoinError> {
+   join_connection_with_manager_and_play(get_manager(ctx).await, connect_to, source, volume).await
 }
 
 pub async fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelId, user_id: UserId) -> CallResult {
@@ -111,9 +123,9 @@ pub async fn play_youtube(ctx: &Context, url: &str, connect_to: ConnectionData) 
    }
 }
 
-pub async fn play_file(ctx: &Context, name: &str, connect_to: ConnectionData) -> CallResult {
+pub async fn play_file_with_manager(manager: Arc<Songbird>, name: &str, connect_to: ConnectionData) -> CallResult {
    match audio_source::file(name, &connect_to.guild).await {
-      Ok(source) => match join_connection_and_play(ctx, connect_to, source, 1.0).await {
+      Ok(source) => match join_connection_with_manager_and_play(manager, connect_to, source, 1.0).await {
          Ok(_) => CallResult::success(format!("Playing {}", name)),
          Err(err) => CallResult::failure(format!("Failed to load file for {}", name), err),
       },
@@ -122,4 +134,8 @@ pub async fn play_file(ctx: &Context, name: &str, connect_to: ConnectionData) ->
       }
       Err(err) => CallResult::failure(format!("Failed to load file for {}", name), err),
    }
+}
+
+pub async fn play_file(ctx: &Context, name: &str, connect_to: ConnectionData) -> CallResult {
+   play_file_with_manager(get_manager(ctx).await, name, connect_to).await
 }
