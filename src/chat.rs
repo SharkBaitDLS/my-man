@@ -6,6 +6,7 @@ use serenity::{
    client::Context,
    model::{id::GuildId, user::User},
 };
+use std::env;
 
 pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User) -> String {
    let bot = ctx.cache.current_user().await;
@@ -34,15 +35,13 @@ pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User)
       Vec::new()
    };
 
+   let web_uri = env::var("WEB_URI").expect("Expected a web URI in the environment");
    let mut content: String = String::new();
    if author_guilds.is_empty() {
       content.push_str("You have no mutual servers with this bot");
    }
    author_guilds.iter().for_each(|guild| {
-      content.push_str(&format!(
-         "[**{}**](https://soundboard.imgoodproductions.org/clips/{})\n",
-         guild.name, guild.id
-      ));
+      content.push_str(&format!("[**{}**]({}/clips/{})\n", guild.name, web_uri, guild.id));
    });
 
    content

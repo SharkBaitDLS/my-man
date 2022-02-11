@@ -33,6 +33,7 @@ async fn main() {
       .expect("Expected an app id in the environment")
       .parse()
       .expect("A valid numerical ID");
+   env::var("WEB_URI").expect("Expected a web URI in the environment");
 
    let mut client = Client::builder(token)
       .application_id(application_id)
