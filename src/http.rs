@@ -1,10 +1,13 @@
-use rocket::{http::Status, post, State};
+use rocket::{catch, http::Status, post, Request, State};
 use serenity::model::id::{GuildId, UserId};
 
 use crate::{
    audio::{connection_data::ConnectionData, playback::play_file_with_manager},
    WebContext,
 };
+
+#[catch(default)]
+pub fn default_catcher(_status: Status, _request: &Request) {}
 
 #[post("/play/<guild_id>/<user_id>/<name>")]
 pub async fn play(ctx: &State<WebContext>, guild_id: u64, user_id: u64, name: &str) -> Result<(), Status> {

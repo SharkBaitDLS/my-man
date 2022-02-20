@@ -9,7 +9,7 @@ mod http;
 mod role;
 
 use log::error;
-use rocket::routes;
+use rocket::{catchers, routes};
 use serenity::{
    client::{bridge::gateway::GatewayIntents, Cache, Client},
    framework::StandardFramework,
@@ -44,17 +44,20 @@ async fn main() {
       .await
       .expect("Err creating client");
 
-   let rocket = rocket::build().mount("/", routes![http::play]).manage(WebContext {
-      cache: client.cache_and_http.cache.clone(),
-      http: client.cache_and_http.http.clone(),
-      songbird: client
-         .data
-         .read()
-         .await
-         .get::<SongbirdKey>()
-         .cloned()
-         .expect("Songbird should be registered!"),
-   });
+   let rocket = rocket::build()
+      .mount("/", routes![http::play])
+      .register("/", catchers![http::default_catcher])
+      .manage(WebContext {
+         cache: client.cache_and_http.cache.clone(),
+         http: client.cache_and_http.http.clone(),
+         songbird: client
+            .data
+            .read()
+            .await
+            .get::<SongbirdKey>()
+            .cloned()
+            .expect("Songbird should be registered!"),
+      });
 
    tokio::spawn(async move {
       if let Err(err) = client.start().await {
