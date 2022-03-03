@@ -11,16 +11,15 @@ mod role;
 use log::error;
 use rocket::{catchers, routes};
 use serenity::{
-   client::{bridge::gateway::GatewayIntents, Cache, Client},
+   client::{bridge::gateway::GatewayIntents, Client},
    framework::StandardFramework,
-   http::Http,
+   CacheAndHttp,
 };
 use songbird::{SerenityInit, Songbird, SongbirdKey};
 use std::{env, sync::Arc};
 
 pub struct WebContext {
-   pub cache: Arc<Cache>,
-   pub http: Arc<Http>,
+   pub cache_http: Arc<CacheAndHttp>,
    pub songbird: Arc<Songbird>,
 }
 
@@ -48,8 +47,7 @@ async fn main() {
       .mount("/", routes![http::play])
       .register("/", catchers![http::default_catcher])
       .manage(WebContext {
-         cache: client.cache_and_http.cache.clone(),
-         http: client.cache_and_http.http.clone(),
+         cache_http: client.cache_and_http.clone(),
          songbird: client
             .data
             .read()
