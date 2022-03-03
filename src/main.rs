@@ -12,7 +12,6 @@ use log::error;
 use rocket::{catchers, routes};
 use serenity::{
    client::{bridge::gateway::GatewayIntents, Client},
-   framework::StandardFramework,
    CacheAndHttp,
 };
 use songbird::{SerenityInit, Songbird, SongbirdKey};
@@ -37,7 +36,6 @@ async fn main() {
    let mut client = Client::builder(token)
       .application_id(application_id)
       .event_handler(event::listener::SoundboardListener)
-      .framework(StandardFramework::new())
       .intents(GatewayIntents::GUILDS | GatewayIntents::GUILD_VOICE_STATES)
       .register_songbird()
       .await
