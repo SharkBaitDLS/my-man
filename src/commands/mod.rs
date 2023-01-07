@@ -2,7 +2,7 @@ use config::{CommandConfig, CommandOption};
 use log::error;
 use serenity::{
    client::Context,
-   model::interactions::application_command::{ApplicationCommand, ApplicationCommandOptionType},
+   model::application::command::{Command, CommandOptionType},
 };
 
 mod config;
@@ -25,7 +25,7 @@ pub async fn create_or_update(ctx: &Context) {
          options: vec![CommandOption {
             name: "name",
             description: "the name of the sound file",
-            kind: ApplicationCommandOptionType::String,
+            kind: CommandOptionType::String,
             required: true,
          }],
       },
@@ -35,7 +35,7 @@ pub async fn create_or_update(ctx: &Context) {
          options: vec![CommandOption {
             name: "url",
             description: "the YouTube URL",
-            kind: ApplicationCommandOptionType::String,
+            kind: CommandOptionType::String,
             required: true,
          }],
       },
@@ -51,7 +51,7 @@ pub async fn create_or_update(ctx: &Context) {
       },
    ];
 
-   if let Ok(current_commands) = ApplicationCommand::get_global_application_commands(ctx).await {
+   if let Ok(current_commands) = Command::get_global_application_commands(ctx).await {
       for config in commands {
          match current_commands.iter().find(|command| command.name == config.name) {
             Some(command) if !config.is_equivalent(command) => (),

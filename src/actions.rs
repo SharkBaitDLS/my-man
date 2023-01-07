@@ -5,8 +5,9 @@ use crate::{
 use log::error;
 use serenity::{
    client::Context,
-   model::interactions::application_command::{
-      ApplicationCommandInteraction, ApplicationCommandInteractionDataOptionValue,
+   model::{
+      application::interaction::application_command::ApplicationCommandInteraction,
+      prelude::interaction::application_command::CommandDataOptionValue,
    },
 };
 
@@ -21,7 +22,7 @@ pub async fn play(ctx: &Context, command: &ApplicationCommandInteraction) -> Str
          .as_ref()
          .expect("Expected a value to be passed");
 
-      if let ApplicationCommandInteractionDataOptionValue::String(name) = option {
+      if let CommandDataOptionValue::String(name) = option {
          call_result::log_error_if_any(playback::play_file(ctx, name, connection).await).user_message
       } else {
          "Cannot parse file name".to_string()
@@ -72,7 +73,7 @@ pub async fn youtube(ctx: &Context, command: &ApplicationCommandInteraction) -> 
          .as_ref()
          .expect("Expected a value to be passed");
 
-      if let ApplicationCommandInteractionDataOptionValue::String(url) = option {
+      if let CommandDataOptionValue::String(url) = option {
          call_result::log_error_if_any(playback::play_youtube(ctx, url, connection).await).user_message
       } else {
          "Cannot parse YouTube URL".to_string()

@@ -1,14 +1,14 @@
 use log::{error, info};
 use serenity::{
    client::Context,
-   model::interactions::application_command::{ApplicationCommand, ApplicationCommandOptionType},
+   model::application::command::{Command, CommandOptionType},
 };
 
 #[derive(Clone, Debug)]
 pub struct CommandOption<'a> {
    pub name: &'a str,
    pub description: &'a str,
-   pub kind: ApplicationCommandOptionType,
+   pub kind: CommandOptionType,
    pub required: bool,
 }
 
@@ -17,7 +17,7 @@ impl Default for CommandOption<'_> {
       Self {
          name: Default::default(),
          description: Default::default(),
-         kind: ApplicationCommandOptionType::String,
+         kind: CommandOptionType::String,
          required: false,
       }
    }
@@ -31,7 +31,7 @@ pub struct CommandConfig<'a> {
 }
 
 impl CommandConfig<'_> {
-   pub fn is_equivalent(&self, command: &ApplicationCommand) -> bool {
+   pub fn is_equivalent(&self, command: &Command) -> bool {
       command.name == self.name
          && command.description == self.description
          && command.options.len() == self.options.len()
@@ -49,7 +49,7 @@ impl CommandConfig<'_> {
 
    pub async fn register_command(&self, ctx: &Context) {
       info!("Registering command: {:?}", &self);
-      if let Err(err) = ApplicationCommand::create_global_application_command(&ctx, |new| {
+      if let Err(err) = Command::create_global_application_command(&ctx, |new| {
          let mut created = new;
          for option in &self.options {
             created = created.create_option(|new_option| {

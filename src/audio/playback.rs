@@ -51,7 +51,7 @@ pub async fn stop(ctx: &Context, connect_to: ConnectionData) -> CallResult {
 async fn join_connection_with_manager(
    manager: Arc<Songbird>, connect_to: ConnectionData,
 ) -> Result<Arc<Mutex<Call>>, JoinError> {
-   let call = manager.get_or_insert(connect_to.guild.into());
+   let call = manager.get_or_insert(connect_to.guild);
    let current_channel_id = { call.lock().await.current_channel() };
 
    if let Some(channel_id) = current_channel_id {

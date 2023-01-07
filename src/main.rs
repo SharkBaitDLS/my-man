@@ -10,10 +10,7 @@ mod role;
 
 use log::error;
 use rocket::{catchers, routes};
-use serenity::{
-   client::{bridge::gateway::GatewayIntents, Client},
-   CacheAndHttp,
-};
+use serenity::{client::Client, prelude::GatewayIntents, CacheAndHttp};
 use songbird::{SerenityInit, Songbird, SongbirdKey};
 use std::{env, sync::Arc};
 
@@ -33,10 +30,9 @@ async fn main() {
       .expect("A valid numerical ID");
    env::var("WEB_URI").expect("Expected a web URI in the environment");
 
-   let mut client = Client::builder(token)
+   let mut client = Client::builder(token, GatewayIntents::GUILDS | GatewayIntents::GUILD_VOICE_STATES)
       .application_id(application_id)
       .event_handler(event::listener::SoundboardListener)
-      .intents(GatewayIntents::GUILDS | GatewayIntents::GUILD_VOICE_STATES)
       .register_songbird()
       .await
       .expect("Err creating client");

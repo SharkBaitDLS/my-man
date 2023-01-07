@@ -2,8 +2,8 @@ use serenity::{
    client::{Cache, Context},
    http::Http,
    model::{
+      application::interaction::application_command::ApplicationCommandInteraction,
       id::{ChannelId, GuildId},
-      interactions::application_command::ApplicationCommandInteraction,
       user::User,
    },
 };
@@ -18,13 +18,13 @@ pub struct ConnectionData {
 impl ConnectionData {
    pub async fn try_from_command(ctx: &Context, command: &ApplicationCommandInteraction) -> Option<Self> {
       match command.guild_id {
-         Some(guild_id) => Self::try_from_guild_user(&ctx.cache, guild_id, &command.user).await,
+         Some(guild_id) => Self::try_from_guild_user(&ctx.cache, guild_id, &command.user),
          None => Self::try_from_user(&ctx.cache, &ctx.http, &command.user).await,
       }
    }
 
-   pub async fn try_from_guild_user(cache: &Cache, guild_id: GuildId, user: &User) -> Option<Self> {
-      guild_id.to_guild_cached(cache).await.and_then(|guild| {
+   pub fn try_from_guild_user(cache: &Cache, guild_id: GuildId, user: &User) -> Option<Self> {
+      guild_id.to_guild_cached(cache).and_then(|guild| {
          guild
             .voice_states
             .get(&user.id)

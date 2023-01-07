@@ -2,9 +2,8 @@ use log::{error, info};
 use serenity::{
    client::{Context, EventHandler},
    model::{
+      application::interaction::{Interaction, InteractionResponseType, MessageFlags},
       gateway::{Activity, Ready},
-      id::GuildId,
-      interactions::{Interaction, InteractionApplicationCommandCallbackDataFlags, InteractionResponseType},
       voice::VoiceState,
    },
    utils::Colour,
@@ -32,20 +31,18 @@ impl EventHandler for SoundboardListener {
       role::create_admin_roles(&ctx).await;
    }
 
-   async fn voice_state_update(
-      &self, ctx: Context, guild_id: Option<GuildId>, old: Option<VoiceState>, new: VoiceState,
-   ) {
+   async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
       match new.channel_id {
          Some(channel_id)
-            if util::moved_to_non_afk(&ctx, guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) =>
+            if util::moved_to_non_afk(&ctx, new.guild_id.unwrap(), channel_id, old.and_then(|o| o.channel_id)) =>
          {
             let msg = call_result::log_error_if_any(
-               playback::play_entrance(ctx, guild_id.unwrap(), channel_id, new.user_id).await,
+               playback::play_entrance(ctx, new.guild_id.unwrap(), channel_id, new.user_id).await,
             )
             .user_message;
             info!("{}", msg);
          }
-         _ => util::move_if_last_user(ctx, guild_id).await,
+         _ => util::move_if_last_user(ctx, new.guild_id).await,
       }
    }
 
@@ -59,7 +56,7 @@ impl EventHandler for SoundboardListener {
                   .interaction_response_data(|message| {
                      // Ephemeral means that only the user who issued the command sees the response
                      // and can dismiss it at their leisure
-                     message.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+                     message.flags(MessageFlags::EPHEMERAL)
                   })
             })
             .await;
@@ -82,7 +79,7 @@ impl EventHandler for SoundboardListener {
          // update the response with the actual result of the action
          let edit_response = command
             .edit_original_interaction_response(&ctx, |response| {
-               response.create_embed(|embed| {
+               response.embed(|embed| {
                   embed
                      .colour(Colour::FABLED_PINK)
                      .title(format!("/{} result", command.data.name))

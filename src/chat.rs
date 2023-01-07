@@ -1,7 +1,4 @@
-use futures::{
-   executor::block_on,
-   stream::{FuturesOrdered, StreamExt},
-};
+use futures::{stream, StreamExt};
 use serenity::{
    client::Context,
    model::{id::GuildId, user::User},
@@ -9,15 +6,12 @@ use serenity::{
 use std::env;
 
 pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User) -> String {
-   let bot = ctx.cache.current_user().await;
+   let bot = ctx.cache.current_user();
 
-   let author_guilds = if let Some(guild) = maybe_guild_id.and_then(|id| block_on(id.to_guild_cached(&ctx))) {
+   let author_guilds = if let Some(guild) = maybe_guild_id.and_then(|id| id.to_guild_cached(ctx)) {
       vec![guild]
    } else if let Ok(guilds) = bot.guilds(ctx).await {
-      guilds
-         .iter()
-         .map(|guild_id| ctx.cache.guild(guild_id))
-         .collect::<FuturesOrdered<_>>()
+      stream::iter(guilds.iter().map(|guild_id| ctx.cache.guild(guild_id)))
          .filter_map(|maybe_guild| async {
             if let Some(guild) = maybe_guild {
                if guild.member(&ctx, &author.id).await.is_ok() {
