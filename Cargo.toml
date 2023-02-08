@@ -11,7 +11,7 @@ futures = "0.3"
 log = "*"
 rocket = "0.5.0-rc.2"
 songbird = "0.3"
-tokio = { version = "1.24", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [dependencies.serenity]
 version = "0.11"

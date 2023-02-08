@@ -111,28 +111,28 @@ pub async fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelI
 
 pub async fn play_youtube(ctx: &Context, url: &str, connect_to: ConnectionData) -> CallResult {
    if !url.starts_with("http") {
-      return CallResult::success(format!("{} is not a valid URL", url));
+      return CallResult::success(format!("{url} is not a valid URL"));
    }
    if let Ok(source) = songbird::ytdl(url).await {
       match join_connection_and_play(ctx, connect_to, source, 0.2).await {
-         Ok(_) => CallResult::success(format!("Playing {}", url)),
+         Ok(_) => CallResult::success(format!("Playing {url}")),
          Err(err) => CallResult::failure("Failed to load youtube content", err),
       }
    } else {
-      CallResult::success(format!("Youtube content not found for {}", url))
+      CallResult::success(format!("Youtube content not found for {url}"))
    }
 }
 
 pub async fn play_file_with_manager(manager: Arc<Songbird>, name: &str, connect_to: ConnectionData) -> CallResult {
    match audio_source::file(name, &connect_to.guild).await {
       Ok(source) => match join_connection_with_manager_and_play(manager, connect_to, source, 1.0).await {
-         Ok(_) => CallResult::success(format!("Playing {}", name)),
-         Err(err) => CallResult::failure(format!("Failed to load file for {}", name), err),
+         Ok(_) => CallResult::success(format!("Playing {name}")),
+         Err(err) => CallResult::failure(format!("Failed to load file for {name}"), err),
       },
       Err(Error::Io(err)) if err.kind() == ErrorKind::NotFound => {
-         CallResult::success(format!("Audio file not found for {}", name))
+         CallResult::success(format!("Audio file not found for {name}"))
       }
-      Err(err) => CallResult::failure(format!("Failed to load file for {}", name), err),
+      Err(err) => CallResult::failure(format!("Failed to load file for {name}"), err),
    }
 }
 

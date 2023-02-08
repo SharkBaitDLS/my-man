@@ -81,7 +81,7 @@ mod tests {
             let mut file = File::open(path)?;
             let mut content = String::new();
             file.read_to_string(&mut content)?;
-            panic!("Expected an error to be raised, got file content: {}", content);
+            panic!("Expected an error to be raised, got file content: {content}");
          }
       }
 
