@@ -20,11 +20,7 @@ async fn get_path(name: &str, guild_id: &GuildId) -> Result<PathBuf, std::io::Er
       .iter()
       .collect();
 
-   if path
-      .components()
-      .into_iter()
-      .any(|component| component == Component::ParentDir)
-   {
+   if path.components().any(|component| component == Component::ParentDir) {
       return Err(std::io::Error::new(
          ErrorKind::PermissionDenied,
          "Attempt to traverse directory hierarchy",
