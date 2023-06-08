@@ -113,13 +113,15 @@ pub async fn play_youtube(ctx: &Context, url: &str, connect_to: ConnectionData) 
    if !url.starts_with("http") {
       return CallResult::success(format!("{url} is not a valid URL"));
    }
-   if let Ok(source) = songbird::ytdl(url).await {
-      match join_connection_and_play(ctx, connect_to, source, 0.2).await {
+   match songbird::ytdl(url).await {
+      Ok(source) => match join_connection_and_play(ctx, connect_to, source, 0.2).await {
          Ok(_) => CallResult::success(format!("Playing {url}")),
          Err(err) => CallResult::failure("Failed to load youtube content", err),
-      }
-   } else {
-      CallResult::success(format!("Youtube content not found for {url}"))
+      },
+      Err(err) => match err {
+         Error::YouTubeDlUrl(_) => CallResult::success(format!("Youtube content not found for {url}")),
+         _ => CallResult::failure("Unexpected error occurred when downloading from Youtube", err),
+      },
    }
 }
 
