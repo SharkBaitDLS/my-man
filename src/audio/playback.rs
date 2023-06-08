@@ -114,7 +114,7 @@ pub async fn play_youtube(ctx: &Context, url: &str, connect_to: ConnectionData) 
       return CallResult::success(format!("{url} is not a valid URL"));
    }
    match songbird::ytdl(url).await {
-      Ok(source) => match join_connection_and_play(ctx, connect_to, source, 0.2).await {
+      Ok(source) => match join_connection_and_play(ctx, connect_to, source, 1.0).await {
          Ok(_) => CallResult::success(format!("Playing {url}")),
          Err(err) => CallResult::failure("Failed to load youtube content", err),
       },
