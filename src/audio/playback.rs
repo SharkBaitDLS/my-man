@@ -120,6 +120,7 @@ pub async fn play_youtube(ctx: &Context, url: &str, connect_to: ConnectionData) 
       },
       Err(err) => match err {
          Error::YouTubeDlUrl(_) => CallResult::success(format!("Youtube content not found for {url}")),
+         Error::YouTubeDlProcessing(json) => CallResult::failure("Unexpected response from Youtube", json),
          _ => CallResult::failure("Unexpected error occurred when downloading from Youtube", err),
       },
    }
