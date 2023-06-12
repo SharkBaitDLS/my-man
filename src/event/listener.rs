@@ -1,9 +1,12 @@
+use std::{env, path::PathBuf};
+
 use log::{error, info};
 use serenity::{
    client::{Context, EventHandler},
    model::{
       application::interaction::{Interaction, InteractionResponseType, MessageFlags},
       gateway::{Activity, Ready},
+      guild::Guild,
       voice::VoiceState,
    },
    utils::Colour,
@@ -28,7 +31,18 @@ impl EventHandler for SoundboardListener {
       info!("{} is connected!", ready.user.name);
       ctx.set_activity(Activity::listening("commands: /help")).await;
       commands::create_or_update(&ctx).await;
-      role::create_admin_roles(&ctx).await;
+   }
+
+   // Fired the first time the API sends data for a guild, even if it's not actually being created.
+   // This should result in this event firing when the bot joins a new guild, or on bot startup.
+   async fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
+      let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
+      let path: PathBuf = [file_dir, guild.id.as_u64().to_string()].iter().collect();
+
+      match std::fs::create_dir_all(&path) {
+         Ok(_) => role::create_admin_role(&ctx, &guild.id, path).await,
+         Err(err) => error!("Could not generate clip directory for {}: {:?}", guild.id, err),
+      }
    }
 
    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
