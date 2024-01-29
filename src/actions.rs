@@ -16,7 +16,7 @@ pub async fn play(ctx: &Context, command: &ApplicationCommandInteraction) -> Str
       let option = command
          .data
          .options
-         .get(0)
+         .first()
          .expect("Expected name option")
          .resolved
          .as_ref()
@@ -67,7 +67,7 @@ pub async fn youtube(ctx: &Context, command: &ApplicationCommandInteraction) -> 
       let option = command
          .data
          .options
-         .get(0)
+         .first()
          .expect("Expected URL option")
          .resolved
          .as_ref()
