@@ -2,7 +2,7 @@ use config::{CommandConfig, CommandOption};
 use log::error;
 use serenity::{
    client::Context,
-   model::application::command::{Command, CommandOptionType},
+   model::application::{Command, CommandOptionType},
 };
 
 mod config;
@@ -51,7 +51,7 @@ pub async fn create_or_update(ctx: &Context) {
       },
    ];
 
-   if let Ok(current_commands) = Command::get_global_application_commands(ctx).await {
+   if let Ok(current_commands) = Command::get_global_commands(ctx).await {
       for config in commands {
          match current_commands.iter().find(|command| command.name == config.name) {
             Some(command) if !config.is_equivalent(command) => (),

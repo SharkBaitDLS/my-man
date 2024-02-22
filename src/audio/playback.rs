@@ -2,6 +2,7 @@ use crate::{
    audio::{audio_source, connection_data::ConnectionData},
    call_result::CallResult,
 };
+use reqwest::Client;
 use serenity::{
    client::Context,
    model::{
@@ -11,8 +12,9 @@ use serenity::{
    prelude::Mutex,
 };
 use songbird::{
-   error::JoinError,
-   input::{error::Error, Input},
+   error::{JoinError, JoinResult},
+   input::{Input, YoutubeDl},
+   tracks::Track,
    Call, Songbird,
 };
 use std::{io::ErrorKind, sync::Arc};
@@ -25,8 +27,7 @@ pub async fn get_manager(ctx: &Context) -> Arc<Songbird> {
 }
 
 async fn play_source(mut call: MutexGuard<'_, Call>, source: Input, volume: f32) {
-   let (mut track, _) = songbird::create_player(source);
-   track.set_volume(volume);
+   let track = Track::new(source).volume(volume);
    call.play(track);
 }
 
@@ -60,8 +61,8 @@ async fn join_connection_with_manager(
       }
    }
    match manager.join(connect_to.guild, connect_to.channel).await {
-      (call, Ok(_)) => Ok(call),
-      (_, Err(err)) => Err(err),
+      JoinResult::Ok(call) => Ok(call),
+      JoinResult::Err(err) => Err(err),
    }
 }
 
@@ -109,24 +110,14 @@ pub async fn play_entrance(ctx: Context, guild_id: GuildId, channel_id: ChannelI
    }
 }
 
-pub async fn play_youtube(ctx: &Context, url: &str, connect_to: ConnectionData) -> CallResult {
+pub async fn play_youtube(ctx: &Context, client: Client, url: &str, connect_to: ConnectionData) -> CallResult {
    if !url.starts_with("http") {
       return CallResult::success(format!("{url} is not a valid URL"));
    }
-   match songbird::ytdl(url).await {
-      Ok(source) => match join_connection_and_play(ctx, connect_to, source, 1.0).await {
-         Ok(_) => CallResult::success(format!("Playing {url}")),
-         Err(err) => CallResult::failure("Failed to load youtube content", err),
-      },
-      Err(err) => match err {
-         Error::Json { error, parsed_text } => CallResult::failure(
-            "Unexpected response from Youtube",
-            format!("{:?} parsing: {}", error, parsed_text),
-         ),
-         Error::YouTubeDlUrl(_) => CallResult::success(format!("Youtube content not found for {url}")),
-         Error::YouTubeDlProcessing(json) => CallResult::failure("Unexpected response from Youtube", json),
-         _ => CallResult::failure("Unexpected error occurred when downloading from Youtube", err),
-      },
+
+   match join_connection_and_play(ctx, connect_to, YoutubeDl::new(client, url.to_owned()).into(), 1.0).await {
+      Ok(_) => CallResult::success(format!("Playing {url}")),
+      Err(err) => CallResult::failure("Failed to load youtube content", err),
    }
 }
 
@@ -136,9 +127,7 @@ pub async fn play_file_with_manager(manager: Arc<Songbird>, name: &str, connect_
          Ok(_) => CallResult::success(format!("Playing {name}")),
          Err(err) => CallResult::failure(format!("Failed to load file for {name}"), err),
       },
-      Err(Error::Io(err)) if err.kind() == ErrorKind::NotFound => {
-         CallResult::success(format!("Audio file not found for {name}"))
-      }
+      Err(err) if err.kind() == ErrorKind::NotFound => CallResult::success(format!("Audio file not found for {name}")),
       Err(err) => CallResult::failure(format!("Failed to load file for {name}"), err),
    }
 }

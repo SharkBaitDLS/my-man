@@ -1,33 +1,33 @@
 use serenity::model::id::GuildId;
-use songbird::input::{error::Error, Input};
+use songbird::input::{File as AudioFile, Input};
 use std::{
    env,
-   fs::File,
-   io::ErrorKind,
+   io::{Error, ErrorKind},
    path::{Component, PathBuf},
 };
 
 pub async fn file(name: &str, guild_id: &GuildId) -> Result<Input, Error> {
-   match get_path(name, guild_id).await {
-      Ok(path) => songbird::ffmpeg(path).await,
-      Err(err) => Err(Error::Io(err)),
-   }
+   get_path(name, guild_id).await.map(|path| AudioFile::new(path).into())
 }
 
-async fn get_path(name: &str, guild_id: &GuildId) -> Result<PathBuf, std::io::Error> {
+async fn get_path(name: &str, guild_id: &GuildId) -> Result<PathBuf, Error> {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
-   let path: PathBuf = [file_dir, guild_id.as_u64().to_string(), name.to_lowercase() + ".mp3"]
-      .iter()
-      .collect();
+   let path: PathBuf = [
+      file_dir,
+      Into::<u64>::into(*guild_id).to_string(),
+      name.to_lowercase() + ".mp3",
+   ]
+   .iter()
+   .collect();
 
    if path.components().any(|component| component == Component::ParentDir) {
-      return Err(std::io::Error::new(
+      return Err(Error::new(
          ErrorKind::PermissionDenied,
          "Attempt to traverse directory hierarchy",
       ));
    }
 
-   File::open(&path).map(|_| path)
+   Ok(path)
 }
 
 #[cfg(test)]
@@ -35,8 +35,8 @@ mod tests {
    use super::*;
    use futures::executor::block_on;
    use std::{
-      fs,
-      io::{ErrorKind, Read, Write},
+      fs::{self, File},
+      io::{Error, ErrorKind, Read, Write},
    };
    use tempfile::{tempdir, TempDir};
 
@@ -44,20 +44,20 @@ mod tests {
    #[should_panic(expected = "Audio file directory must be in the environment!")]
    #[allow(unused_must_use)]
    fn test_path_requires_dir() {
-      block_on(get_path("some_clip", &GuildId(1)));
+      block_on(get_path("some_clip", &GuildId::new(1)));
    }
 
    #[test]
    fn test_guild_clip_retrieved() -> Result<(), Error> {
       let dir = setup_temp_directories()?;
 
-      let mut file = File::open(block_on(get_path("clip", &GuildId(1)))?)?;
+      let mut file = File::open(block_on(get_path("clip", &GuildId::new(1)))?)?;
       let mut content = String::new();
       file.read_to_string(&mut content)?;
 
       assert_eq!(content, "first guild clip");
 
-      file = File::open(block_on(get_path("clip", &GuildId(2)))?)?;
+      file = File::open(block_on(get_path("clip", &GuildId::new(2)))?)?;
       content = String::new();
       file.read_to_string(&mut content)?;
 
@@ -71,7 +71,7 @@ mod tests {
    fn test_relative_path_traversal_disallowed() -> Result<(), Error> {
       let dir = setup_temp_directories()?;
 
-      match block_on(get_path("../2/clip", &GuildId(1))) {
+      match block_on(get_path("../2/clip", &GuildId::new(1))) {
          Err(err) => assert!(err.kind() == ErrorKind::PermissionDenied),
          Ok(path) => {
             let mut file = File::open(path)?;

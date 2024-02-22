@@ -1,20 +1,31 @@
 use std::{env, path::PathBuf};
 
 use log::{error, info};
+use reqwest::Client;
 use serenity::{
+   builder::{CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse},
    client::{Context, EventHandler},
+   gateway::ActivityData,
    model::{
-      application::interaction::{Interaction, InteractionResponseType, MessageFlags},
-      gateway::{Activity, Ready},
+      application::{Interaction, InteractionResponseFlags},
+      gateway::Ready,
       guild::Guild,
       voice::VoiceState,
+      Color,
    },
-   utils::Colour,
 };
 
 use crate::{actions, audio::playback, call_result, chat, commands, event::util, role};
 
-pub struct SoundboardListener;
+pub struct SoundboardListener {
+   client: Client,
+}
+
+impl SoundboardListener {
+   pub fn new() -> Self {
+      SoundboardListener { client: Client::new() }
+   }
+}
 
 static HELP_MSG: &str = "You can type any of the following commands:
 ```
@@ -29,15 +40,15 @@ static HELP_MSG: &str = "You can type any of the following commands:
 impl EventHandler for SoundboardListener {
    async fn ready(&self, ctx: Context, ready: Ready) {
       info!("{} is connected!", ready.user.name);
-      ctx.set_activity(Activity::listening("commands: /help")).await;
+      ctx.set_activity(Some(ActivityData::listening("commands: /help")));
       commands::create_or_update(&ctx).await;
    }
 
    // Fired the first time the API sends data for a guild, even if it's not actually being created.
    // This should result in this event firing when the bot joins a new guild, or on bot startup.
-   async fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
+   async fn guild_create(&self, ctx: Context, guild: Guild, _is_new: Option<bool>) {
       let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
-      let path: PathBuf = [file_dir, guild.id.as_u64().to_string()].iter().collect();
+      let path: PathBuf = [file_dir, Into::<u64>::into(guild.id).to_string()].iter().collect();
 
       match std::fs::create_dir_all(&path) {
          Ok(_) => role::create_admin_role(&ctx, &guild.id, path).await,
@@ -61,18 +72,15 @@ impl EventHandler for SoundboardListener {
    }
 
    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-      if let Interaction::ApplicationCommand(command) = interaction {
+      if let Interaction::Command(command) = interaction {
          // create an initial placeholder result that shows the bot as "thinking"
          let create_response = command
-            .create_interaction_response(&ctx, |response| {
-               response
-                  .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                  .interaction_response_data(|message| {
-                     // Ephemeral means that only the user who issued the command sees the response
-                     // and can dismiss it at their leisure
-                     message.flags(MessageFlags::EPHEMERAL)
-                  })
-            })
+            .create_response(
+               &ctx,
+               CreateInteractionResponse::Defer(
+                  CreateInteractionResponseMessage::new().flags(InteractionResponseFlags::EPHEMERAL),
+               ),
+            )
             .await;
 
          if let Err(msg) = create_response {
@@ -82,7 +90,7 @@ impl EventHandler for SoundboardListener {
 
          let result = match command.data.name.as_str() {
             "play" => actions::play(&ctx, &command).await,
-            "youtube" => actions::youtube(&ctx, &command).await,
+            "youtube" => actions::youtube(&ctx, self.client.clone(), &command).await,
             "help" => HELP_MSG.to_string(),
             "list" => chat::list(&ctx, command.guild_id, &command.user).await,
             "stop" => actions::stop(&ctx, &command).await,
@@ -92,14 +100,15 @@ impl EventHandler for SoundboardListener {
 
          // update the response with the actual result of the action
          let edit_response = command
-            .edit_original_interaction_response(&ctx, |response| {
-               response.embed(|embed| {
-                  embed
-                     .colour(Colour::FABLED_PINK)
+            .edit_response(
+               &ctx,
+               EditInteractionResponse::new().add_embed(
+                  CreateEmbed::new()
+                     .colour(Color::FABLED_PINK)
                      .title(format!("/{} result", command.data.name))
-                     .description(result)
-               })
-            })
+                     .description(result),
+               ),
+            )
             .await;
          if let Err(msg) = edit_response {
             error!("Could not respond to command: {:?}", msg);

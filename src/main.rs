@@ -8,14 +8,16 @@ mod guilds;
 mod http;
 mod role;
 
+use event::listener::SoundboardListener;
 use log::error;
 use rocket::{catchers, routes};
-use serenity::{client::Client, prelude::GatewayIntents, CacheAndHttp};
+use serenity::{cache::Cache, client::Client, http::Http, prelude::GatewayIntents};
 use songbird::{SerenityInit, Songbird, SongbirdKey};
 use std::{env, sync::Arc};
 
 pub struct WebContext {
-   pub cache_http: Arc<CacheAndHttp>,
+   pub cache: Arc<Cache>,
+   pub http: Arc<Http>,
    pub songbird: Arc<Songbird>,
 }
 
@@ -31,8 +33,8 @@ async fn main() {
    env::var("WEB_URI").expect("Expected a web URI in the environment");
 
    let mut client = Client::builder(token, GatewayIntents::GUILDS | GatewayIntents::GUILD_VOICE_STATES)
-      .application_id(application_id)
-      .event_handler(event::listener::SoundboardListener)
+      .application_id(application_id.into())
+      .event_handler(SoundboardListener::new())
       .register_songbird()
       .await
       .expect("Err creating client");
@@ -41,7 +43,8 @@ async fn main() {
       .mount("/", routes![http::play])
       .register("/", catchers![http::default_catcher])
       .manage(WebContext {
-         cache_http: client.cache_and_http.clone(),
+         cache: client.cache.clone(),
+         http: client.http.clone(),
          songbird: client
             .data
             .read()

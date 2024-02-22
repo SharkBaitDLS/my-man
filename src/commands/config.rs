@@ -1,7 +1,8 @@
 use log::{error, info};
 use serenity::{
+   all::{CreateCommand, CreateCommandOption},
    client::Context,
-   model::application::command::{Command, CommandOptionType},
+   model::application::{Command, CommandOptionType},
 };
 
 #[derive(Clone, Debug)]
@@ -49,21 +50,13 @@ impl CommandConfig<'_> {
 
    pub async fn register_command(&self, ctx: &Context) {
       info!("Registering command: {:?}", &self);
-      if let Err(err) = Command::create_global_application_command(&ctx, |new| {
-         let mut created = new;
-         for option in &self.options {
-            created = created.create_option(|new_option| {
-               new_option
-                  .name(option.name)
-                  .description(option.description)
-                  .kind(option.kind)
-                  .required(option.required)
-            })
-         }
-         created.name(self.name).description(self.description)
-      })
-      .await
-      {
+      let mut created = CreateCommand::new(self.name).description(self.description);
+      for option in &self.options {
+         created = created.add_option(
+            CreateCommandOption::new(option.kind, option.name, option.description).required(option.required),
+         );
+      }
+      if let Err(err) = Command::create_global_command(ctx, created).await {
          error!("Could not register command: {:?}", err)
       }
    }

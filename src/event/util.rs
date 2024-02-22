@@ -12,8 +12,8 @@ use std::collections::hash_map::{HashMap, Values};
 fn is_afk_channel(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bool {
    guild_id
       .to_guild_cached(&ctx.cache)
-      .and_then(|guild| guild.afk_channel_id)
-      .map_or(false, |afk_id| afk_id == channel_id)
+      .and_then(|guild| guild.to_owned().afk_metadata)
+      .map_or(false, |metadata| metadata.afk_channel_id == channel_id)
 }
 
 fn all_afk_states(ctx: &Context, guild_id: GuildId, states: Values<'_, UserId, VoiceState>) -> bool {
@@ -46,7 +46,7 @@ pub async fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
    let current_user_id = ctx.cache.current_user().id;
    match guild_id
       .and_then(|id| id.to_guild_cached(&ctx.cache))
-      .map(|guild| guild.voice_states)
+      .map(|guild| guild.to_owned().voice_states)
    {
       // if the bot is the only one left in voice, disconnect from voice
       Some(states) if states.len() == 1 || all_afk_states(&ctx, guild_id.unwrap(), states.values()) => {

@@ -5,16 +5,17 @@ use serenity::{
 };
 use std::env;
 
-pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User) -> String {
-   let bot = ctx.cache.current_user();
+use crate::guilds::{get_bot_guild_infos, get_guild};
 
-   let author_guilds = if let Some(guild) = maybe_guild_id.and_then(|id| id.to_guild_cached(ctx)) {
+pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User) -> String {
+   let author_guilds = if let Some(guild) = maybe_guild_id.and_then(|id| get_guild(ctx, id)) {
       vec![guild]
-   } else if let Ok(guilds) = bot.guilds(ctx).await {
-      stream::iter(guilds.iter().map(|guild_id| ctx.cache.guild(guild_id)))
+   } else {
+      let guilds = get_bot_guild_infos(ctx).await;
+      stream::iter(guilds.iter().map(|id| get_guild(ctx, id)))
          .filter_map(|maybe_guild| async {
             if let Some(guild) = maybe_guild {
-               if guild.member(&ctx, &author.id).await.is_ok() {
+               if guild.member(ctx, &author.id).await.is_ok() {
                   Some(guild)
                } else {
                   None
@@ -25,8 +26,6 @@ pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User)
          })
          .collect::<Vec<_>>()
          .await
-   } else {
-      Vec::new()
    };
 
    let web_uri = env::var("WEB_URI").expect("Expected a web URI in the environment");
