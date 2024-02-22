@@ -8,8 +8,7 @@ Note: this depends on [serenity-rs](https://github.com/serenity-rs/serenity) whi
 
 ### Running
 #### Runtime Prerequisites
-* [ffmpeg](https://ffmpeg.org/download.html)
-* [youtube-dl](https://ytdl-org.github.io/youtube-dl/download.html) (only required for youtube playback)
+* [yt-dlp]([https://ytdl-org.github.io/youtube-dl/download.html](https://github.com/yt-dlp/yt-dlp)) (only required for youtube playback)
 
 #### Execution
 Run the binary with the following environment variables set:
