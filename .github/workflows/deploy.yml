@@ -36,7 +36,7 @@ jobs:
       - name: Build
         run: cargo build --release
       - name: Upload result
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: release
           path: target/release/my_man
@@ -46,9 +46,10 @@ jobs:
     needs: build
     steps:
       - name: Download release binary
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v4
         with:
           name: release
+          path: release
       - name: Deploy
         run: cp -f release/my_man /home/soundboard/ && chmod +x /home/soundboard/my_man && chown soundboard /home/soundboard/my_man && chgrp soundboard /home/soundboard/my_man
       - name: Activate
