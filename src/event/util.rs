@@ -13,7 +13,7 @@ fn is_afk_channel(ctx: &Context, guild_id: GuildId, channel_id: ChannelId) -> bo
    guild_id
       .to_guild_cached(&ctx.cache)
       .and_then(|guild| guild.to_owned().afk_metadata)
-      .map_or(false, |metadata| metadata.afk_channel_id == channel_id)
+      .is_some_and(|metadata| metadata.afk_channel_id == channel_id)
 }
 
 fn all_afk_states(ctx: &Context, guild_id: GuildId, states: Values<'_, UserId, VoiceState>) -> bool {
