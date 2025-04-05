@@ -20,7 +20,7 @@ fn all_afk_states(ctx: &Context, guild_id: GuildId, states: Values<'_, UserId, V
    let current_user_id = ctx.cache.current_user().id;
    states
       .filter(|state| state.user_id != current_user_id)
-      .all(|state| state.channel_id.map_or(true, |id| is_afk_channel(ctx, guild_id, id)))
+      .all(|state| state.channel_id.is_none_or(|id| is_afk_channel(ctx, guild_id, id)))
 }
 
 fn only_user_in_channel(ctx: &Context, states: &HashMap<UserId, VoiceState>) -> bool {
