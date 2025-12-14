@@ -34,16 +34,16 @@ pub async fn stop(ctx: &Context, command: &CommandInteraction) -> String {
 pub async fn summon(ctx: &Context, command: &CommandInteraction) -> String {
    let msg: String;
    if let Some(connection) = ConnectionData::try_from_command(ctx, command).await {
-      if let Ok(source) = audio_source::file("myman", &connection.guild).await {
+      if let Ok(source) = audio_source::file("myman", connection.guild) {
          if let Err(err) = playback::join_connection_and_play(ctx, connection, source, 1.0).await {
             msg = "Bot failed to join your channel".to_string();
-            error!("Failed to join summon: {}", err);
+            error!("Failed to join summon: {err}");
          } else {
             msg = "Bot summoned".to_string();
          }
       } else if let Err(err) = playback::join_connection(ctx, connection).await {
          msg = "Bot failed to join your channel".to_string();
-         error!("Failed to join summon: {}", err);
+         error!("Failed to join summon: {err}");
       } else {
          msg = "Bot summoned".to_string();
       }

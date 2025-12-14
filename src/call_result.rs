@@ -1,4 +1,5 @@
 use log::error;
+use std::fmt::Display;
 
 pub struct CallResult {
    pub user_message: String,
@@ -6,16 +7,16 @@ pub struct CallResult {
 }
 
 impl CallResult {
-   pub fn success<T: ToString>(user_message: T) -> Self {
+   pub fn success(user_message: String) -> Self {
       Self {
-         user_message: user_message.to_string(),
+         user_message,
          underlying_error: None,
       }
    }
 
-   pub fn failure<T: ToString, U: ToString>(user_message: T, underlying_error: U) -> Self {
+   pub fn failure<U: Display>(user_message: String, underlying_error: U) -> Self {
       Self {
-         user_message: user_message.to_string(),
+         user_message,
          underlying_error: Some(underlying_error.to_string()),
       }
    }
@@ -23,7 +24,7 @@ impl CallResult {
 
 pub fn log_error_if_any(result: CallResult) -> CallResult {
    if let Some(ref err) = result.underlying_error {
-      error!("Unexpected error occured during call: {}", err);
+      error!("Unexpected error occured during call: {err}");
    }
    result
 }

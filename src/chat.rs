@@ -1,9 +1,9 @@
-use futures::{stream, StreamExt};
+use futures::{StreamExt, stream};
 use serenity::{
    client::Context,
    model::{id::GuildId, user::User},
 };
-use std::env;
+use std::{env, fmt::Write};
 
 use crate::guilds::{get_bot_guild_infos, get_guild};
 
@@ -33,9 +33,9 @@ pub async fn list(ctx: &Context, maybe_guild_id: Option<GuildId>, author: &User)
    if author_guilds.is_empty() {
       content.push_str("You have no mutual servers with this bot");
    }
-   author_guilds.iter().for_each(|guild| {
-      content.push_str(&format!("[**{}**]({}/clips/{})\n", guild.name, web_uri, guild.id));
-   });
+   for guild in author_guilds {
+      writeln!(content, "[**{}**]({}/clips/{})", guild.name, web_uri, guild.id).expect("content is a string");
+   }
 
    content
 }

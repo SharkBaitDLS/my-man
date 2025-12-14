@@ -56,10 +56,10 @@ async fn main() {
 
    tokio::spawn(async move {
       if let Err(err) = client.start().await {
-         error!("Client ended: {:?}", err)
+         error!("Client ended: {err:?}");
       }
    });
    if let Err(err) = rocket.launch().await {
-      error!("Webserver ended: {:?}", err)
+      error!("Webserver ended: {err:?}");
    }
 }

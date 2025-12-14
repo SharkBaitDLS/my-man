@@ -7,11 +7,11 @@ use serenity::{
    client::{Context, EventHandler},
    gateway::ActivityData,
    model::{
+      Color,
       application::{Interaction, InteractionResponseFlags},
       gateway::Ready,
       guild::Guild,
       voice::VoiceState,
-      Color,
    },
 };
 
@@ -51,7 +51,7 @@ impl EventHandler for SoundboardListener {
       let path: PathBuf = [file_dir, Into::<u64>::into(guild.id).to_string()].iter().collect();
 
       match std::fs::create_dir_all(&path) {
-         Ok(_) => role::create_admin_role(&ctx, &guild.id, path).await,
+         Ok(()) => role::create_admin_role(&ctx, &guild.id, path).await,
          Err(err) => error!("Could not generate clip directory for {}: {:?}", guild.id, err),
       }
    }
@@ -65,7 +65,7 @@ impl EventHandler for SoundboardListener {
                playback::play_entrance(ctx, new.guild_id.unwrap(), channel_id, new.user_id).await,
             )
             .user_message;
-            info!("{}", msg);
+            info!("{msg}");
          }
          _ => util::move_if_last_user(ctx, new.guild_id).await,
       }
@@ -84,7 +84,7 @@ impl EventHandler for SoundboardListener {
             .await;
 
          if let Err(msg) = create_response {
-            error!("Could not respond to command: {:?}", msg);
+            error!("Could not respond to command: {msg:?}");
             return;
          }
 
@@ -111,7 +111,7 @@ impl EventHandler for SoundboardListener {
             )
             .await;
          if let Err(msg) = edit_response {
-            error!("Could not respond to command: {:?}", msg);
+            error!("Could not respond to command: {msg:?}");
          }
       }
    }

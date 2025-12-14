@@ -57,7 +57,7 @@ impl CommandConfig<'_> {
          );
       }
       if let Err(err) = Command::create_global_command(ctx, created).await {
-         error!("Could not register command: {:?}", err)
+         error!("Could not register command: {err:?}");
       }
    }
 }

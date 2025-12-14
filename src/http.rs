@@ -1,12 +1,12 @@
-use rocket::{catch, http::Status, post, Request, State};
+use rocket::{Request, State, catch, http::Status, post};
 use serenity::{
    http::CacheHttp,
    model::id::{GuildId, UserId},
 };
 
 use crate::{
-   audio::{connection_data::ConnectionData, playback::play_file_with_manager},
    WebContext,
+   audio::{connection_data::ConnectionData, playback::play_file_with_manager},
 };
 
 #[catch(default)]
@@ -14,15 +14,15 @@ pub fn default_catcher(_status: Status, _request: &Request) {}
 
 #[post("/play/<guild_id>/<user_id>/<name>")]
 pub async fn play(ctx: &State<WebContext>, guild_id: u64, user_id: u64, name: &str) -> Result<(), Status> {
-   if let Ok(user) = UserId::new(user_id).to_user((&ctx.cache, ctx.http.http())).await {
-      if let Some(connect_to) = ConnectionData::try_from_guild_user(&ctx.cache, GuildId::new(guild_id), &user) {
-         return match play_file_with_manager(ctx.songbird.clone(), name, connect_to)
-            .await
-            .underlying_error
-         {
-            Some(_) => Err(Status::InternalServerError),
-            None => Ok(()),
-         };
+   if let Ok(user) = UserId::new(user_id).to_user((&ctx.cache, ctx.http.http())).await
+      && let Some(connect_to) = ConnectionData::try_from_guild_user(&ctx.cache, GuildId::new(guild_id), &user)
+   {
+      return match play_file_with_manager(ctx.songbird.clone(), name, connect_to)
+         .await
+         .underlying_error
+      {
+         Some(_) => Err(Status::InternalServerError),
+         None => Ok(()),
       };
    }
    Err(Status::NotFound)

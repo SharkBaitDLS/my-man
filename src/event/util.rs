@@ -35,9 +35,7 @@ fn only_user_in_channel(ctx: &Context, states: &HashMap<UserId, VoiceState>) -> 
 }
 
 pub fn moved_to_non_afk(ctx: &Context, guild_id: GuildId, channel_id: ChannelId, old_id: Option<ChannelId>) -> bool {
-   let moved_or_joined = old_id
-      .map(|old_channel_id| old_channel_id != channel_id)
-      .unwrap_or(true);
+   let moved_or_joined = old_id != Some(channel_id);
 
    moved_or_joined && !is_afk_channel(ctx, guild_id, channel_id)
 }
@@ -51,7 +49,7 @@ pub async fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
       // if the bot is the only one left in voice, disconnect from voice
       Some(states) if states.len() == 1 || all_afk_states(&ctx, guild_id.unwrap(), states.values()) => {
          let manager = playback::get_manager(&ctx).await;
-         let _ = manager.leave(guild_id.unwrap()).await.map_err(|err| error!("{}", err));
+         let _ = manager.leave(guild_id.unwrap()).await.map_err(|err| error!("{err}"));
       }
       // if the bot is the only one left in its channel, and others are active in the server, join them
       Some(states) if states.len() > 1 && only_user_in_channel(&ctx, &states) => {
@@ -69,12 +67,12 @@ pub async fn move_if_last_user(ctx: Context, guild_id: Option<GuildId>) {
                guild: guild_id.unwrap(),
                channel: channel_id,
             };
-            if let Ok(source) = audio_source::file("myman", &guild_id.unwrap()).await {
+            if let Ok(source) = audio_source::file("myman", guild_id.unwrap()) {
                if let Err(err) = playback::join_connection_and_play(&ctx, connection, source, 1.0).await {
-                  error!("Failed to join another active channel: {}", err);
+                  error!("Failed to join another active channel: {err}");
                }
             } else if let Err(err) = playback::join_connection(&ctx, connection).await {
-               error!("Failed to join another active channel: {}", err);
+               error!("Failed to join another active channel: {err}");
             }
          } else {
             warn!("No channel found to join, but the number of states indicated there should be");

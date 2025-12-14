@@ -6,15 +6,15 @@ use std::{
    path::{Component, PathBuf},
 };
 
-pub async fn file(name: &str, guild_id: &GuildId) -> Result<Input, Error> {
-   get_path(name, guild_id).await.map(|path| AudioFile::new(path).into())
+pub fn file(name: &str, guild_id: GuildId) -> Result<Input, Error> {
+   get_path(name, guild_id).map(|path| AudioFile::new(path).into())
 }
 
-async fn get_path(name: &str, guild_id: &GuildId) -> Result<PathBuf, Error> {
+fn get_path(name: &str, guild_id: GuildId) -> Result<PathBuf, Error> {
    let file_dir = env::var("AUDIO_FILE_DIR").expect("Audio file directory must be in the environment!");
    let path: PathBuf = [
       file_dir,
-      Into::<u64>::into(*guild_id).to_string(),
+      Into::<u64>::into(guild_id).to_string(),
       name.to_lowercase() + ".mp3",
    ]
    .iter()
@@ -33,31 +33,30 @@ async fn get_path(name: &str, guild_id: &GuildId) -> Result<PathBuf, Error> {
 #[cfg(test)]
 mod tests {
    use super::*;
-   use futures::executor::block_on;
    use std::{
       fs::{self, File},
       io::{Error, ErrorKind, Read, Write},
    };
-   use tempfile::{tempdir, TempDir};
+   use tempfile::{TempDir, tempdir};
 
    #[test]
    #[should_panic(expected = "Audio file directory must be in the environment!")]
    #[allow(unused_must_use)]
    fn test_path_requires_dir() {
-      block_on(get_path("some_clip", &GuildId::new(1)));
+      get_path("some_clip", GuildId::new(1));
    }
 
    #[test]
    fn test_guild_clip_retrieved() -> Result<(), Error> {
       let dir = setup_temp_directories()?;
 
-      let mut file = File::open(block_on(get_path("clip", &GuildId::new(1)))?)?;
+      let mut file = File::open(get_path("clip", GuildId::new(1))?)?;
       let mut content = String::new();
       file.read_to_string(&mut content)?;
 
       assert_eq!(content, "first guild clip");
 
-      file = File::open(block_on(get_path("clip", &GuildId::new(2)))?)?;
+      file = File::open(get_path("clip", GuildId::new(2))?)?;
       content = String::new();
       file.read_to_string(&mut content)?;
 
@@ -71,7 +70,7 @@ mod tests {
    fn test_relative_path_traversal_disallowed() -> Result<(), Error> {
       let dir = setup_temp_directories()?;
 
-      match block_on(get_path("../2/clip", &GuildId::new(1))) {
+      match get_path("../2/clip", GuildId::new(1)) {
          Err(err) => assert!(err.kind() == ErrorKind::PermissionDenied),
          Ok(path) => {
             let mut file = File::open(path)?;
@@ -104,7 +103,7 @@ mod tests {
       let mut another_second_guild_file = File::create(second_guild.join("another_clip.mp3"))?;
       another_second_guild_file.write_all(b"another second guild file")?;
 
-      env::set_var("AUDIO_FILE_DIR", dir.path().as_os_str());
+      unsafe { env::set_var("AUDIO_FILE_DIR", dir.path().as_os_str()) };
       Ok(dir)
    }
 }

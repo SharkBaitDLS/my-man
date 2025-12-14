@@ -12,18 +12,18 @@ pub async fn create_admin_role(ctx: &Context, guild_id: &GuildId, mut path: Path
    let admin_role_id;
    {
       let mut admin_role_data = String::new();
-      if let Err(err) = File::open(&path).map(|mut file| file.read_to_string(&mut admin_role_data)) {
-         if err.kind() != ErrorKind::NotFound {
-            error!("Could not retrieve role ID for guild {:?}: {:?}", guild_id, err);
-         }
+      if let Err(err) = File::open(&path).map(|mut file| file.read_to_string(&mut admin_role_data))
+         && err.kind() != ErrorKind::NotFound
+      {
+         error!("Could not retrieve role ID for guild {guild_id:?}: {err:?}");
       }
       if admin_role_data.is_empty() {
          admin_role_id = None;
       } else {
          admin_role_id = admin_role_data
             .parse::<u64>()
-            .map_err(|err| error!("Could not parse .role_id for {:?}: {:?}", guild_id, err))
-            .ok()
+            .map_err(|err| error!("Could not parse .role_id for {guild_id:?}: {err:?}"))
+            .ok();
       }
    }
 
@@ -48,12 +48,9 @@ pub async fn create_admin_role(ctx: &Context, guild_id: &GuildId, mut path: Path
                   );
                }
             }
-            Err(err) => error!("Could not create role for guild {:?}: {:?}", guild_id, err),
+            Err(err) => error!("Could not create role for guild {guild_id:?}: {err:?}"),
          },
-         Err(err) => error!(
-            "Could not create .role file for guild, not creating role: {:?}: {:?}",
-            guild_id, err
-         ),
+         Err(err) => error!("Could not create .role file for guild, not creating role: {guild_id:?}: {err:?}"),
       }
    }
 }
