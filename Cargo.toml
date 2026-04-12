@@ -11,7 +11,7 @@ futures = "0.3"
 log = "0.4"
 reqwest = "0.12"
 rocket = "0.5"
-songbird = { git = "https://github.com/beerpsi-forks/songbird.git", branch = "davey" }
+songbird = "0.6"
 symphonia = { version = "0.5", features = ["mp3"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
