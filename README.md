@@ -4,7 +4,7 @@
 #### Tests
 `cargo test`
 
-Note: this depends on [songbird](https://github.com/serenity-rs/songbird) which in turn depends on [audiopus](https://crates.io/crates/audiopus). On some platforms those may need to have their dependent libraries manually built and linked rather than built by the crates themselves. Consult the crate docs for those packages for more information on setting up your build environment.
+Note: this depends on [songbird](https://github.com/serenity-rs/songbird) which in turn depends on [opus2](https://crates.io/crates/opus2). On some platforms `opus2` may need to have its dependent libraries manually built and linked. Consult its crate docs for more information on setting up your build environment.
 
 ### Running
 #### Runtime Prerequisites
