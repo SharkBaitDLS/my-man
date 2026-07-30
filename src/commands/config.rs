@@ -49,7 +49,7 @@ impl CommandConfig<'_> {
    }
 
    pub async fn register_command(&self, ctx: &Context) {
-      info!("Registering command: {:?}", &self);
+      info!("Registering command: {:?}", self);
       let mut created = CreateCommand::new(self.name).description(self.description);
       for option in &self.options {
          created = created.add_option(

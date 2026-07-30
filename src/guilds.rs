@@ -15,7 +15,7 @@ pub fn get_guild<T: AsRef<Cache>, G: Into<GuildId>>(cache: T, id: G) -> Option<G
 pub async fn get_bot_guild_infos<T: AsRef<Http>>(http: T) -> Vec<GuildInfo> {
    // We don't send any pagination data because My Man is (currently) not in more than 100 guilds
    http.as_ref().get_guilds(None, None).await.unwrap_or_else(|err| {
-      error!("Error retrieving this bot's guilds: {}", &err);
+      error!("Error retrieving this bot's guilds: {}", err);
       Vec::new()
    })
 }
